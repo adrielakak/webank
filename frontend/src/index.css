@@ -2,46 +2,112 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────
+   WeAdvisory — Institutional Design Tokens
+   Palette: zinc-950 base, no glow, no blur art
+   Chinese market: red = gain, green = loss
+   ───────────────────────────────────────────── */
+
 @layer base {
+  :root {
+    /* Surface hierarchy */
+    --surface-0: #000000;   /* Pure black base */
+    --surface-1: #000000;   /* panel fills */
+    --surface-2: #09090b;   /* Slightly off-black for input/bubbles */
+    --surface-3: #18181b;   /* zinc-900 */
+
+    /* Border system */
+    --border-subtle: transparent;
+    --border-default: transparent;
+    --border-raised:  transparent;
+
+    /* Text hierarchy */
+    --text-primary:   #fafafa;  /* zinc-50 */
+    --text-secondary: #a1a1aa;  /* zinc-400 */
+    --text-muted:     #52525b;  /* zinc-600 */
+
+    /* Chinese Market Semantic Colors */
+    --cn-gain:   #ef4444; /* red-500  — 涨 (up/gain) */
+    --cn-loss:   #22c55e; /* green-500 — 跌 (down/loss) */
+    --cn-gain-bg: rgba(239, 68, 68, 0.10);
+    --cn-loss-bg: rgba(34, 197, 94, 0.10);
+    --cn-gain-border: rgba(239, 68, 68, 0.25);
+    --cn-loss-border: rgba(34, 197, 94, 0.25);
+
+    /* Neutral accent (no blue/cyan flash) */
+    --accent:         #e4e4e7;  /* zinc-200 */
+    --accent-muted:   #71717a;  /* zinc-500 */
+
+    /* Tier color encoding — muted, not flashy */
+    --tier-c1: #a1a1aa;
+    --tier-c2: #60a5fa;
+    --tier-c3: #94a3b8;
+    --tier-c4: #fbbf24;
+    --tier-c5: #ef4444;
+
+    /* Compliance */
+    --compliant: #22c55e;   /* green — OK is loss-color, compliant means controlled */
+    --sentinel:  #ef4444;   /* red — alert/block */
+  }
+
   body {
-    background-color: #0B0F17;
-    color: #F8FAFC;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--surface-0);
+    color: var(--text-primary);
+    font-family: 'Inter', 'SF Pro Text', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    box-sizing: border-box;
   }
 }
 
-/* Custom Scrollbar for dark cockpit */
+/* ── Minimal Scrollbar ───────────────────────── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
-
 ::-webkit-scrollbar-track {
-  background: rgba(11, 15, 23, 0.6);
+  background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 2px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 210, 255, 0.4);
+  background: rgba(255, 255, 255, 0.18);
 }
 
-/* Glassmorphism card utilities */
-.glass-panel {
-  background: rgba(19, 27, 42, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* ── Panel — no blur art, strict border ─────── */
+.panel {
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-default);
 }
 
-.glass-card-hover {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+.card {
+  background-color: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
 }
 
-.glass-card-hover:hover {
-  border-color: rgba(0, 210, 255, 0.3);
-  box-shadow: 0 0 20px rgba(0, 102, 255, 0.15);
+/* ── Monospace Data Labels ───────────────────── */
+.data-label {
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
+
+/* ── Transition default ──────────────────────── */
+.transition-default {
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Chinese semantic helpers ────────────────── */
+.cn-gain  { color: var(--cn-gain); }
+.cn-loss  { color: var(--cn-loss); }
+.cn-gain-bg  { background: var(--cn-gain-bg); border-color: var(--cn-gain-border); }
+.cn-loss-bg  { background: var(--cn-loss-bg); border-color: var(--cn-loss-border); }
