@@ -85,6 +85,20 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
     }
   };
 
+  const handleQuickAction = async (prompt: string) => {
+    if (isLoading) return;
+    setMessages(prev => [...prev, { role: "user", text: prompt }]);
+    setIsLoading(true);
+    try {
+      const responseText = await sendMessageToAgent(prompt, messages);
+      setMessages(prev => [...prev, { role: "agent", text: responseText }]);
+    } catch (error) {
+      setMessages(prev => [...prev, { role: "agent", text: "⚠️ WeBank Agent could not be reached." }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
@@ -136,8 +150,8 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           {/* Input Area */}
           <div className="p-4 bg-black border-t border-zinc-900">
             <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
-              <button onClick={() => onSelectTier("C2")} className="whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-light border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 transition-colors text-zinc-300">Simulate Rate Shock +1%</button>
-              <button onClick={() => onSelectTier("C4")} className="whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-light border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 transition-colors text-zinc-300">Increase Growth Exposure</button>
+              <button type="button" onClick={() => handleQuickAction("Simulate a +100bps interest rate shock on my bond holdings. What would happen to my portfolio?")} disabled={isLoading} className="whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-light border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 transition-colors text-zinc-300 disabled:opacity-50">Simulate Rate Shock +1%</button>
+              <button type="button" onClick={() => handleQuickAction("I want to increase my growth exposure. Can you optimize my portfolio for a C4 growth profile?")} disabled={isLoading} className="whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-light border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 transition-colors text-zinc-300 disabled:opacity-50">Increase Growth Exposure</button>
             </div>
             <form onSubmit={handleSendMessage} className="relative flex items-center">
               <input
@@ -287,8 +301,10 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 </div>
               </div>
               <button 
-                onClick={() => alert("Executing Sandbox Order...")}
-                className="whitespace-nowrap px-6 py-3 flex items-center justify-center gap-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-zinc-200 text-sm font-medium transition-colors shadow-lg"
+                type="button"
+                onClick={() => handleQuickAction("Execute a sandbox rebalance order for my current portfolio allocation.")}
+                disabled={isLoading}
+                className="whitespace-nowrap px-6 py-3 flex items-center justify-center gap-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-zinc-200 text-sm font-medium transition-colors shadow-lg disabled:opacity-50"
               >
                 <TrendingUp className="w-4 h-4" /> Execute Sandbox Order
               </button>

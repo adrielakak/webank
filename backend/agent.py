@@ -89,10 +89,10 @@ def chat_with_agent(message: str, history: list[dict] = None) -> str:
             for msg in history:
                 # Map roles from frontend ("agent" -> "model")
                 role = "user" if msg.get("role") == "user" else "model"
-                contents.append(types.Content(role=role, parts=[types.Part.from_text(msg.get("text", ""))]))
+                contents.append(types.Content(role=role, parts=[types.Part.from_text(text=msg.get("text", ""))]))
                 
         # The chats.create() method expects the history (excluding the new message)
-        chat = client.chats.create(model='gemini-2.5-flash', config=config, history=contents)
+        chat = client.chats.create(model='gemini-3.6-flash', config=config, history=contents)
         response = chat.send_message(message)
         
         return response.text
