@@ -1,0 +1,173 @@
+---
+title: "WeAdvisory AI: Product Architecture & Regulatory Specification"
+subtitle: "2026 Shenzhen International FinTech Competition — Topic B: Wealth Advisory Agent"
+author: "Adriel Kourlate & Development Team"
+date: today
+format:
+  html:
+    toc: true
+    number-sections: true
+    theme: cosmo
+  typst:
+    toc: true
+    number-sections: true
+    papersize: a4
+---
+
+::: {.callout-note}
+## Strategic Context
+This document serves as the formal functional specification and regulatory blueprint for **WeAdvisory AI**, an autonomous, explainable wealth advisory agent co-designed for the 2026 FinTechathon (Shenzhen University & WeBank).
+:::
+
+# Executive Summary & Value Proposition
+
+Retail investors face a persistent dilemma: traditional private wealth managers demand high minimum ticket sizes ($100k+), while typical algorithmic robo-advisors offer static, rigid questionnaires without contextual understanding. Conversely, unstructured Large Language Model (LLM) chatbots introduce severe financial hallucinations, non-deterministic advice, and regulatory liability.
+
+**WeAdvisory AI** solves this through a **Tri-Pillar Architecture**:
+1. **Psychometric Conversational Onboarding**: Dialogic investor profiling with dynamic behavioral stress scenarios.
+2. **Deterministic Mathematical Optimization**: Zero-hallucination asset allocation driven by Modern Portfolio Theory (MPT / Markowitz) and Monte Carlo risk cones executed strictly in Python.
+3. **Hard-Stop Regulatory Compliance Sentinel**: An active compliance guardrail implementing the **CSRC R1–R5 Investor Suitability Standard** (China Securities Regulatory Commission) and **MiFID II / FINRA** suitability protocols, backed by an immutable cryptographic audit trail.
+
+---
+
+# Regulatory Backbone: The WeBank R1–R5 Suitability Framework
+
+To mirror WeBank's core institutional banking standards, every client profile and financial instrument is mapped to the standard 5-tier risk taxonomy:
+
+| Risk Tier | Profile / Instrument Name | Description | Max Equity / Volatile Asset Ceiling | Max Tolerated 1Y Loss |
+|:---|:---|:---|:---:|:---:|
+| **R1** | Cautious (谨慎型) | Capital preservation, near-zero volatility. | 0% | 0.0% |
+| **R2** | Prudent (稳健型) | Fixed income, sovereign bonds, low duration risk. | 15% | -3.0% |
+| **R3** | Balanced (平衡型) | Multi-asset blend, dividend equities, investment-grade credit. | 50% | -10.0% |
+| **R4** | Growth (进取型) | Capital appreciation, broad equities, thematic tech. | 85% | -20.0% |
+| **R5** | Aggressive (激进型) | Maximum long-term growth, high-beta, alternative assets / RWAs. | 100% | > -30.0% |
+
+### Strict Compliance Rules (Hard-Stop Policy)
+- **Rule 1 (Suitability Ceiling)**: The agent *cannot* propose an asset allocation whose composite risk score exceeds the client's validated profile without triggering a formal regulatory blockage.
+- **Rule 2 (Anti-Coercion Protocol)**: If a user explicitly instructs the assistant to purchase an incompatible asset (e.g., an R2 client requesting 80% Tech Growth), the **Compliance Sentinel** interrupts the conversational flow with a structured *Suitability Warning & Risk Disclosure*.
+- **Rule 3 (Audit Non-Repudiation)**: Every final allocation recommendation and user acknowledgment is hashed (SHA-256) and logged with a timestamp for regulatory post-trade inspection.
+
+---
+
+# The Curated Sandbox Investment Universe
+
+The simulated sandbox consists of 10 representative asset classes reflecting global multi-asset wealth management:
+
+| Asset ID | Asset Name | Category | Risk Tier | Expected Annual Return ($\mu$) | Expected Annual Volatility ($\sigma$) |
+|:---|:---|:---|:---:|:---:|:---:|
+| `CASH-USD` | USD Cash & Yield Equivalents | Money Market | **R1** | 4.5% | 0.4% |
+| `US-TREAS-7Y` | US 7-10 Year Treasury Bond ETF | Sovereign Debt | **R2** | 4.8% | 5.5% |
+| `CN-CGB-10Y` | China Government Bond Index | Sovereign Debt | **R2** | 3.2% | 3.8% |
+| `CORP-IG-BOND` | Global Investment Grade Corporate Bonds | Corporate Debt | **R3** | 5.8% | 7.2% |
+| `GLOBAL-DIVIDEND` | Global Dividend Achievers Equity ETF | Equity (Defensive) | **R3** | 7.5% | 12.0% |
+| `GOLD-PHYS` | Physical Gold Trust | Commodities / Safe Haven | **R3** | 6.0% | 14.5% |
+| `MSCI-WORLD-ETF` | MSCI All Country World Equity ETF | Core Global Equity | **R4** | 9.5% | 16.8% |
+| `TECH-INNOVATION` | Nasdaq & AI Innovation Sector ETF | High-Beta Equity | **R4** | 14.0% | 24.5% |
+| `EMERGING-MKTS` | Emerging Markets Equity ETF | Developing Markets | **R5** | 10.5% | 22.0% |
+| `TOKEN-TREAS-RWA` | Tokenized US Treasury / Real-World Asset | On-chain RWA | **R5** (Tech/Liq risk) | 5.2% | 6.0% |
+
+---
+
+# Multi-Agent Topology & Anti-Hallucination Barrier
+
+To achieve 100% mathematical accuracy while maintaining conversational fluidity, the agentic layer is decoupled from numerical computation:
+
+```
++-------------------------------------------------------------------+
+|                        USER INTERFACE (UI)                        |
++-------------------------------------------------------------------+
+                                  ^
+                                  | Dialogue & Actions
+                                  v
++-------------------------------------------------------------------+
+|                    LEAD ORCHESTRATOR AGENT                        |
+|  - Manages session lifecycle & user context                       |
+|  - Dispatches sub-tasks to specialized domain agents              |
++-------------------------------------------------------------------+
+        |                         |                         |
+        v                         v                         v
++---------------+        +-----------------+        +---------------+
+| PROFILER      |        | COMPLIANCE      |        | EXPLAINABILITY|
+| AGENT         |        | SENTINEL        |        | AGENT         |
+| Extracts risk |        | Validates R1-R5 |        | Translates    |
+| metrics via   |        | constraints;    |        | quant metrics |
+| dialogue      |        | issues passes   |        | into plain    |
+|               |        | or vetoes       |        | rationale     |
++---------------+        +-----------------+        +---------------+
+                                  ^
+                                  | Validated Parameters
+                                  v
++-------------------------------------------------------------------+
+|               DETERMINISTIC QUANT ENGINE (PYTHON)                 |
+|  - Markowitz Mean-Variance Optimization (Scipy)                   |
+|  - Maximum Sharpe Ratio Allocation ($w^*$)                        |
+|  - Monte Carlo 1,000-path stochastic forward projection           |
++-------------------------------------------------------------------+
+```
+
+::: {.callout-tip}
+## The Anti-Hallucination Guarantee
+The LLM *never* computes portfolio weights or projected returns. It only formats the outputs produced by the `Deterministic Quant Engine`.
+:::
+
+---
+
+# Data Contracts & Schemas
+
+## Profiler Output Schema (`UserProfile`)
+```json
+{
+  "client_id": "usr_948271",
+  "name": "Sarah Jenkins",
+  "investment_horizon_years": 7,
+  "liquidity_need": "LOW",
+  "loss_tolerance_pct": 12.0,
+  "risk_score_raw": 64,
+  "assigned_tier": "R3",
+  "tier_label": "Balanced"
+}
+```
+
+## Quant Optimization Output Schema (`PortfolioAllocation`)
+```json
+{
+  "profile_tier": "R3",
+  "expected_annual_return": 0.0712,
+  "expected_annual_volatility": 0.0985,
+  "sharpe_ratio": 0.469,
+  "weights": {
+    "CASH-USD": 0.10,
+    "US-TREAS-7Y": 0.25,
+    "CORP-IG-BOND": 0.15,
+    "GLOBAL-DIVIDEND": 0.20,
+    "GOLD-PHYS": 0.10,
+    "MSCI-WORLD-ETF": 0.20
+  },
+  "monte_carlo_p50_terminal_value_5y": 70940.0,
+  "monte_carlo_p05_worst_case_5y": 48200.0
+}
+```
+
+## Compliance Sentinel Verdict Schema (`ComplianceReport`)
+```json
+{
+  "audit_id": "audit_8f293b7c",
+  "timestamp_utc": "2026-09-11T07:15:00Z",
+  "client_tier": "R3",
+  "composite_portfolio_risk": "R3",
+  "equity_allocation_pct": 40.0,
+  "equity_ceiling_pct": 50.0,
+  "compliance_status": "APPROVED",
+  "violations": [],
+  "sha256_fingerprint": "a3f5b8c7...91e4d0"
+}
+```
+
+---
+
+# Next Steps & Implementation Cadence
+
+1. **Quant Engine Implementation**: Implement `engine/portfolio_optimizer.py` with unit tests verifying constraint satisfaction.
+2. **Compliance Engine**: Implement `engine/compliance_sentinel.py` verifying R1–R5 boundary conditions.
+3. **Agent Implementation**: Implement FastAPI microservice with the 3 agent modules.
+4. **Front-End Cockpit**: Build interactive React/Vite dashboard featuring React Bits and Shadcn UI components.

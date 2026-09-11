@@ -1,0 +1,23 @@
+project:
+  type: default
+  output-dir: _output
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    number-sections: true
+    smooth-scroll: true
+    code-fold: show
+    code-tools: true
+    highlight-style: github
+  typst:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    papersize: a4
+    margin:
+      x: 2cm
+      y: 2.5cm

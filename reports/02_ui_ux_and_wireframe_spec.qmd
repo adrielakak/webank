@@ -1,0 +1,165 @@
+---
+title: "WeAdvisory AI: Competitive Benchmark & UI/UX Cockpit Specification"
+subtitle: "2026 Shenzhen International FinTech Competition — Topic B: Wealth Advisory Agent"
+author: "Adriel Kourlate & Development Team"
+date: today
+format:
+  html:
+    toc: true
+    number-sections: true
+    theme: cosmo
+  typst:
+    toc: true
+    number-sections: true
+    papersize: a4
+---
+
+::: {.callout-note}
+## Design Philosophy
+"High-Trust, Zero-Clutter Fintech". The interface marries Silicon Valley minimalism (Wealthfront) with Shenzhen digital banking precision (WeBank / Futu) and conversational warmth (Ant Group's Zhixiaobao).
+:::
+
+# Competitive Benchmark: Deconstruction of the Leaders
+
+To engineer an award-winning interface for the WeBank & Shenzhen University jury, we audited the three premier wealthtech platforms across the US and Chinese markets:
+
+| Dimension | Wealthfront (US) 🇺🇸 | Zhixiaobao / Ant Fortune 🇨🇳 | Futu / Moomoo (Shenzhen) 🇭🇰 | **WeAdvisory AI (Our System)** |
+|:---|:---|:---|:---|:---|
+| **Primary Interaction** | Static multi-step questionnaire | Natural language chat | Dense quote charts & order book | **Synchronized Split-Screen (Chat + Real-time Cockpit)** |
+| **Visual Style** | Minimalist light / slate | Mobile consumer UI | High-density dark mode | **Clean Slate Dark Glassmorphism** |
+| **Quant Visualization** | 30-year Monte Carlo cone | Basic fund performance cards | Technical analysis candlestick charts | **Interactive Risk Cone + Dynamic Asset Donut** |
+| **Compliance Engine** | SEC rule-based suitability | CSRC R1–R5 matching | Standard broker risk warnings | **Real-time Suitability Sentinel with Audit Proof** |
+| **Explainability** | Static text blurbs | Conversational Q&A | Community sentiment & news | **Deterministic Quant-to-Text Explainability (XAI)** |
+
+### The Competitive Gap We Exploit
+* **Traditional Robo-Advisors** lack conversational intelligence, nuance, and empathy; users feel isolated filling out dry questionnaires.
+* **Pure LLM Chatbots** lack visual feedback; text walls cannot intuitively convey portfolio covariance, risk cones, or diversification benefits.
+* **WeAdvisory AI bridges the gap**: The user converses with an empathetic agent on the left, while the right side of the screen **dynamically updates charts, risk metrics, and compliance badges in real time** with zero lag.
+
+---
+
+# Design System & Visual Tokens
+
+The aesthetic targets a **state-of-the-art fintech dark theme**: calming, high-contrast, premium, and trustworthy.
+
+## Color Palette Tokens
+
+```
+Background Primary   : #0B0F17 (Deep Obsidian Slate)
+Background Surface   : #131B2A (Translucent Glass Navy, backdrop-blur 16px)
+Border Token         : rgba(255, 255, 255, 0.08)
+Text Primary         : #F8FAFC (Crisp Platinum)
+Text Muted           : #94A3B8 (Cool Slate)
+Accent Cyan / Blue   : #00D2FF / #3A86FF (WeBank Tech Glow)
+Accent Emerald (Safe): #10B981 (Compliant / Profit / Low Risk)
+Accent Amber (Warn)  : #F59E0B (Moderate Risk / Suitability Advisory)
+Accent Rose (Veto)   : #F43F5E (Regulatory Hard-Stop / Boundary Breach)
+```
+
+## Typography & Micro-Animations
+* **Primary Font**: `Inter` or `Geist Sans` for structural clarity and numerical legibility.
+* **Monospace Font**: `JetBrains Mono` for audit IDs, transaction hashes, and risk weights.
+* **React Bits Integration**:
+  1. *Subtle Dither / Ambient Background*: Soft radial gradient accentuating the active cockpit panel.
+  2. *Animated Number Counter (`NumberTicker`)*: Smooth value transitions when rebalancing capital ($50,000 $\to$ $53,420).
+  3. *Glassmorphism Card Wrappers*: Clean bordered containers with subtle reflection on hover.
+
+---
+
+# Cockpit Wireframe & Screen Layout
+
+The application utilizes a balanced **50 / 50 Desktop Split-Screen** (collapsible to a tabbed bottom-sheet on mobile devices):
+
+```
++---------------------------------------------------------------------------------------------------------+
+| [LOGO] WeAdvisory AI | Client: Sarah J. | Account #WB-84920 | Status: [R3 - BALANCED] [AUDITED] [RESET] |
++--------------------------------------------+------------------------------------------------------------+
+| LEFT PANEL (50%): CONVERSATIONAL ADVISOR   | RIGHT PANEL (50%): DYNAMIC WEALTH COCKPIT                  |
+|                                            |                                                            |
+|  [Agent Avatar: WeBank AI Assistant]       |  [CARD 1: RISK & SUITABILITY SENTINEL]                     |
+|  "Hello Sarah! Let's build your wealth     |  Score: 64/100 | Assigned Tier: [ R3 - Balanced ]          |
+|  strategy. To calibrate your portfolio,    |  Equity Ceiling: 50.0% | Max 1Y Drawdown: -10.0%           |
+|  how would you react if market volatility  |  Compliance Sentinel: ● ALL CONSTRAINTS SATISFIED         |
+|  caused a 10% drawdown in a month?"        |                                                            |
+|                                            |  [CARD 2: DYNAMIC ASSET ALLOCATION]                        |
+|  [User Bubble]                             |  (Interactive Donut Chart + Asset Weight List)            |
+|  "I'm saving for a down payment in 6 yrs.  |  ■ 25% US Treasuries (R2)   ■ 20% MSCI World ETF (R4)      |
+|  I want growth, but I can't afford to      |  ■ 20% Global Dividend (R3) ■ 15% Investment Grade Bond (R3)|
+|  lose my core capital."                    |  ■ 10% Gold Physical (R3)   ■ 10% Cash USD Yield (R1)      |
+|                                            |                                                            |
+|  [Agent Avatar]                            |  [CARD 3: MONTE CARLO WEALTH PROJECTION (5-YEAR CONE)]    |
+|  "Understood. That points to an R3         |  $100k +------------------------------------+ (P90: $84k) |
+|  Balanced allocation. I have optimized     |        |              . . - - - - - - - - - |             |
+|  your portfolio with a 7.1% expected       |   $70k |        . - '                       | (P50: $71k) |
+|  return and capped your equity risk at 40%|   $50k | - - - ' - - - - - - - - - - - - - - |             |
+|  Take a look at your customized cockpit."  |        |        ' - .                       | (P05: $48k) |
+|                                            |    $0k +------------------------------------+             |
+|  [Action Buttons / Suggestions]            |        Year 0         Year 3         Year 5                |
+|  [ "Simulate Rate Shock +1%" ]             |                                                            |
+|  [ "Explain Gold Allocation" ]             |  [CARD 4: CRYPTOGRAPHIC AUDIT PROOF & EXECUTION]           |
+|  [ "Confirm & Execute Sandbox Order" ]     |  Mandate Hash: 0x9e4a...c712  [Verify Hash]                |
+|                                            |  [ EXECUTE REBALANCE IN SANDBOX ACCOUNT ]                  |
+|  [ Input: Ask your advisor anything... ]   |                                                            |
++--------------------------------------------+------------------------------------------------------------+
+```
+
+---
+
+# Functional Component Hierarchy
+
+The front-end will be assembled from modular, decoupled React components:
+
+```
+src/
+├── components/
+│   ├── layout/
+│   │   ├── TopNavbar.tsx           # Global status bar, tier pill, audit modal trigger
+│   │   └── SplitScreenLayout.tsx   # Responsive grid container (50/50 desktop)
+│   ├── chat/
+│   │   ├── AdvisorChatPanel.tsx    # Scrollable dialogue feed with streaming support
+│   │   ├── MessageBubble.tsx       # Message card with role styling (user, assistant, sentinel)
+│   │   ├── QuickActionChips.tsx    # Context-sensitive suggestions ("Simulate shock", "Why this?")
+│   │   └── ChatInputBar.tsx        # Message field with voice/text input and submit button
+│   ├── cockpit/
+│   │   ├── SuitabilityBadgeCard.tsx# Live CSRC R1-R5 indicator with ceiling gauges
+│   │   ├── AllocationDonut.tsx     # Recharts/Chart.js animated donut with hover breakdown
+│   │   ├── MonteCarloChart.tsx     # Interactive area chart showing P10, P50, P90 trajectories
+│   │   └── AuditTrailDrawer.tsx    # Slide-over modal displaying SHA-256 audit log
+│   └── ui/                         # Base Shadcn UI primitives (Button, Card, Tooltip, Badge)
+```
+
+---
+
+# User Journey & State Transitions
+
+The end-to-end user session progresses through 4 clear, measurable states:
+
+```
+[ STATE 0: ONBOARDING ]
+User arrives -> Welcomed by Lead Orchestrator -> Initiates psychometric dialogue.
+      |
+      v
+[ STATE 1: PROFILING & DIAGNOSTIC ]
+Profiler Agent extracts investment horizon, risk threshold, and cash-flow needs.
+Result: Formally assigned CSRC Tier (e.g. R3) displayed on the Cockpit.
+      |
+      v
+[ STATE 2: OPTIMIZATION & EXPLAINABILITY ]
+Deterministic Quant Engine runs Markowitz / Max Sharpe optimization.
+Cockpit animates: Allocation Donut renders; Monte Carlo cone projects growth;
+Advisor explains rationale in natural language.
+      |
+      v
+[ STATE 3: COMPLIANCE CHECK & EXECUTION ]
+Compliance Sentinel audits allocation against R1-R5 rules (Pass / Block).
+User reviews audit hash -> Clicks 'Execute Sandbox Order' -> Sandbox log created.
+```
+
+---
+
+# Verification Checklist for UI/UX Phase
+
+- [ ] Zero clutter: Every chart element must have a clear informative purpose.
+- [ ] Instant visual reaction: Cockpit updates within < 300ms upon agent state change.
+- [ ] Accessibility: High color contrast ratio (WCAG AA compliant) in dark mode.
+- [ ] Responsive behavior: Graceful adaptation from 1920x1080 desktop to 1366x768 laptops.

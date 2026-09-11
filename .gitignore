@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+
+# IDE & OS
+.DS_Store
+*.swp
+*.swo
+.idea/
+
+# Quarto build outputs (keep reports source .qmd)
+reports/_output/
+.quarto/
+
+# Logs
+*.log
