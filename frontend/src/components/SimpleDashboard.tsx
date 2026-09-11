@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { motion, animate, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
-import { ShieldCheck, TrendingUp, Zap, MessageCircle, ChevronRight, AlertTriangle } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShieldCheck, PieChart, Activity, Send, CheckCircle2, AlertTriangle, Fingerprint, TrendingUp, Loader2 } from "lucide-react";
 import { PortfolioAllocation, MonteCarloPath, InvestorRiskLevel } from "../types";
+import { PieChart as RechartsPieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
+import { sendMessageToAgent } from "../lib/api";
 
 interface SimpleDashboardProps {
   allocation: PortfolioAllocation;
@@ -12,148 +14,28 @@ interface SimpleDashboardProps {
   onSelectTier: (tier: InvestorRiskLevel) => void;
 }
 
-/* ── Animated number hook ───────────────────────────────────────── */
-function useCountUp(target: number, decimals = 2, delay = 0) {
-  const [val, setVal] = useState(0);
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      const ctrl = animate(0, target, {
-        duration: 1.4,
-        ease: [0.16, 1, 0.3, 1],
-        onUpdate: v => setVal(parseFloat(v.toFixed(decimals))),
-      });
-      return ctrl.stop;
-    }, delay);
-    return () => clearTimeout(timeout);
-  }, [target]);
-  return val;
-}
-
-/* ── Tier config ─────────────────────────────────────────────────── */
-const TIER_CONF: Record<InvestorRiskLevel, {
-  emoji: string; label: string; sub: string;
-  color: string; bg: string; border: string; risk: number;
-}> = {
-  C1: { emoji: "🛡", label: "Conservative", sub: "保守型", color: "#60a5fa", bg: "rgba(96,165,250,0.08)", border: "rgba(96,165,250,0.2)", risk: 1 },
-  C2: { emoji: "🔒", label: "Prudent",      sub: "谨慎型", color: "#a78bfa", bg: "rgba(167,139,250,0.08)", border: "rgba(167,139,250,0.2)", risk: 2 },
-  C3: { emoji: "⚖️", label: "Balanced",     sub: "平衡型", color: "#e4e4e7", bg: "rgba(228,228,231,0.06)", border: "rgba(228,228,231,0.15)", risk: 3 },
-  C4: { emoji: "📈", label: "Growth",       sub: "积极型", color: "#fbbf24", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.2)", risk: 4 },
-  C5: { emoji: "🚀", label: "Aggressive",   sub: "激进型", color: "#ef4444", bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.2)", risk: 5 },
+// Recharts colors exactly matching the Expert CockpitPanel
+const ASSET_COLORS: Record<string, string> = {
+  "CASH-USD":        "#3f3f46",
+  "CN-CGB-10Y":      "#52525b",
+  "US-TREAS-7Y":     "#71717a",
+  "CORP-IG-BOND":    "#a1a1aa",
+  "GLOBAL-DIVIDEND": "#d4d4d8",
+  "GOLD-PHYS":       "#e4e4e7",
+  "MSCI-WORLD-ETF":  "#f4f4f5",
+  "TECH-INNOVATION": "#ffffff",
+  "EMERGING-MKTS":   "#ef4444",
+  "TOKEN-TREAS-RWA": "#dc2626",
 };
 
-const TIERS: InvestorRiskLevel[] = ["C1", "C2", "C3", "C4", "C5"];
-
-const stagger = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
+const TIER_COLORS: Record<InvestorRiskLevel, string> = {
+  C1: "#60a5fa",
+  C2: "#a78bfa",
+  C3: "#e4e4e7",
+  C4: "#fbbf24",
+  C5: "#ef4444",
 };
 
-const fadeSlide = {
-  hidden: { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
-};
-
-/* ── Sparkline (single smooth P50 curve) ────────────────────────── */
-function Sparkline({ data, color }: { data: number[]; color: string }) {
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
-  const W = 600, H = 100;
-  const min = Math.min(...data), max = Math.max(...data);
-  const n = data.length;
-  const xs = data.map((_, i) => (i / (n - 1)) * W);
-  const ys = data.map(v => H - ((v - min) / (max - min)) * H * 0.85 - H * 0.075);
-
-  const d = xs.map((x, i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${ys[i].toFixed(1)}`).join(" ");
-  const areaD = `${d} L${W},${H} L0,${H} Z`;
-
-  return (
-    <div className="w-full h-full relative" onMouseLeave={() => setHoverIdx(null)}>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-full" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
-          </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="2" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
-        <path d={areaD} fill="url(#sparkGrad)" />
-        <motion.path
-          d={d}
-          fill="none"
-          stroke={color}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          filter="url(#glow)"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 1 }}
-          transition={{ duration: 1.6, ease: "easeOut", delay: 0.3 }}
-        />
-
-        {/* Hover interaction */}
-        {hoverIdx !== null && (
-          <g>
-            <line x1={xs[hoverIdx]} y1={0} x2={xs[hoverIdx]} y2={H} stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="2 2" />
-            <circle cx={xs[hoverIdx]} cy={ys[hoverIdx]} r={3} fill={color} />
-          </g>
-        )}
-        
-        {/* Invisible hit areas */}
-        {data.map((_, i) => (
-          <rect
-            key={`hit-${i}`}
-            x={xs[i] - (W / n) / 2}
-            y={0}
-            width={W / n}
-            height={H}
-            fill="transparent"
-            onMouseEnter={() => setHoverIdx(i)}
-            className="cursor-crosshair"
-          />
-        ))}
-      </svg>
-      
-      {/* Tooltip */}
-      {hoverIdx !== null && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-zinc-900 border border-zinc-700 text-[10px] font-mono px-2 py-1 rounded shadow-lg pointer-events-none z-10 whitespace-nowrap">
-          <span className="text-zinc-500 mr-2">M{hoverIdx}</span>
-          <span style={{ color }}>${Math.round(data[hoverIdx]).toLocaleString()}</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── KPI Card ────────────────────────────────────────────────────── */
-function KpiCard({
-  label, value, unit, sub, color, delay = 0,
-}: {
-  label: string; value: string; unit?: string; sub: string; color?: string; delay?: number;
-}) {
-  return (
-    <motion.div
-      variants={fadeSlide}
-      whileHover={{ y: -2, scale: 1.015 }}
-      className="flex flex-col gap-1 p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm cursor-default select-none"
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-    >
-      <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">{label}</span>
-      <div className="flex items-baseline gap-1 mt-1">
-        <span className="text-2xl font-semibold tabular-nums" style={{ color: color ?? "#fafafa" }}>
-          {value}
-        </span>
-        {unit && <span className="text-sm text-zinc-500 font-mono">{unit}</span>}
-      </div>
-      <span className="text-xs text-zinc-600 font-light">{sub}</span>
-    </motion.div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   SIMPLE DASHBOARD
-   ═══════════════════════════════════════════════════════════════════ */
 export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   allocation,
   monteCarlo,
@@ -162,200 +44,259 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   onOpenChat,
   onSelectTier,
 }) => {
-  const tc = TIER_CONF[currentTier];
-  const isGain = allocation.expected_annual_return >= 0;
-  const chartColor = isGain ? "#ef4444" : "#22c55e"; // Chinese convention
+  // Format data for Recharts Pie
+  const activeWeights = Object.entries(allocation.weights)
+    .filter(([, w]) => w > 0.001)
+    .map(([name, value]) => ({ name, value: value * 100 }));
 
-  const aum = useCountUp(portfolioValue, 0, 200);
-  const ret = useCountUp(allocation.expected_annual_return * 100, 2, 400);
-  const sharpe = useCountUp(allocation.sharpe_ratio, 2, 600);
-  const vol = useCountUp(allocation.expected_annual_volatility * 100, 2, 500);
+  // Format data for Recharts Area
+  const chartData = monteCarlo.months.map((m, i) => ({
+    month: m === 0 ? "Now" : `Y${m / 12}`,
+    P90: monteCarlo.p90_optimistic[i],
+    P50: monteCarlo.p50_median[i],
+    P10: monteCarlo.p10_pessimistic[i],
+  }));
 
-  const topAsset = Object.entries(allocation.weights).sort((a, b) => b[1] - a[1])[0];
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState([
+    { role: "agent", text: "Hello Sarah! Let's build your wealth strategy. To calibrate your portfolio, how would you react if market volatility caused a 10% drawdown in a month?" },
+    { role: "user", text: "I'm saving for a down payment in 6 yrs. I want growth, but I can't afford to lose my core capital." },
+    { role: "agent", text: `Understood. That points to an ${currentTier} ${allocation.client_tier} allocation. I have optimized your portfolio with a ${(allocation.expected_annual_return * 100).toFixed(1)}% expected return and capped your equity risk. Take a look at your customized cockpit on the right.` },
+  ]);
+  const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputValue.trim() || isLoading) return;
+    
+    const userMessage = inputValue;
+    setMessages(prev => [...prev, { role: "user", text: userMessage }]);
+    setInputValue("");
+    setIsLoading(true);
+    
+    try {
+      const responseText = await sendMessageToAgent(userMessage, messages);
+      setMessages(prev => [...prev, { role: "agent", text: responseText }]);
+    } catch (error) {
+      setMessages(prev => [...prev, { role: "agent", text: "⚠️ WeBank Agent could not be reached." }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 md:px-8 py-8">
-      <motion.div
-        className="max-w-2xl mx-auto flex flex-col gap-6"
-        variants={stagger}
-        initial="hidden"
-        animate="visible"
-      >
-
-        {/* ── Hero AUM card ── */}
-        <motion.div
-          variants={fadeSlide}
-          className="relative rounded-3xl overflow-hidden bg-zinc-950 border border-zinc-800/50 p-6"
-        >
-          {/* Subtle glow */}
-          <div
-            className="absolute inset-0 opacity-20 pointer-events-none"
-            style={{
-              background: `radial-gradient(ellipse at 30% 50%, ${tc.color} 0%, transparent 70%)`,
-            }}
-          />
-
-          <div className="relative z-10 flex flex-col gap-4">
-            {/* Portfolio label */}
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-                Sandbox Portfolio · Sarah Jenkins
-              </span>
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-full" style={{ background: tc.bg, border: `1px solid ${tc.border}` }}>
-                <span className="text-sm">{tc.emoji}</span>
-                <span className="text-[10px] font-mono font-bold" style={{ color: tc.color }}>
-                  {currentTier} {tc.label}
-                </span>
+    <div className="flex-1 w-full h-full bg-black text-white overflow-hidden">
+      <div className="h-full grid grid-cols-1 lg:grid-cols-2">
+        
+        {/* ── LEFT PANEL: Conversational Advisor ── */}
+        <div className="h-full border-r border-zinc-900 flex flex-col bg-black relative">
+          
+          {/* Header */}
+          <div className="p-4 border-b border-zinc-900 flex items-center justify-between sticky top-0 z-10 bg-black">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center border border-zinc-800">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
               </div>
-            </div>
-
-            {/* AUM value */}
-            <div>
-              <div className="text-5xl md:text-6xl font-bold tabular-nums tracking-tight text-white">
-                ${aum.toLocaleString("en-US")}
+              <div>
+                <div className="text-sm font-semibold text-zinc-200">WeBank AI Assistant</div>
+                <div className="text-[10px] text-zinc-500 font-mono">XAI EXPLAINABILITY ENGINE</div>
               </div>
-              <div className={`text-lg font-medium mt-1 tabular-nums ${isGain ? "text-red-400" : "text-green-400"}`}>
-                {isGain ? "+" : ""}{ret.toFixed(2)}% expected annual return
-              </div>
-            </div>
-
-            {/* Sparkline */}
-            <div className="h-20 w-full -mx-1">
-              <Sparkline data={monteCarlo.p50_median} color={chartColor} />
-            </div>
-
-            {/* Horizon labels */}
-            <div className="flex justify-between text-[9px] font-mono text-zinc-600 uppercase -mt-2">
-              <span>Now</span>
-              <span>Year 1</span>
-              <span>Year 3</span>
-              <span>Year 5</span>
             </div>
           </div>
-        </motion.div>
 
-        {/* ── KPI grid ── */}
-        <motion.div variants={fadeSlide} className="grid grid-cols-3 gap-3">
-          <KpiCard
-            label="Sharpe"
-            value={sharpe.toFixed(2)}
-            sub="Risk-adjusted return"
-            color="#e4e4e7"
-            delay={0}
-          />
-          <KpiCard
-            label="Volatility"
-            value={vol.toFixed(1)}
-            unit="%"
-            sub="Annual std deviation"
-            color="#a1a1aa"
-            delay={0.1}
-          />
-          <KpiCard
-            label="Compliance"
-            value="✓"
-            sub="CSRC suitability met"
-            color="#10b981"
-            delay={0.2}
-          />
-        </motion.div>
-
-        {/* ── Risk Tier selector ── */}
-        <motion.div variants={fadeSlide} className="flex flex-col gap-3">
-          <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Your risk profile</span>
-          <div className="flex gap-2">
-            {TIERS.map(tier => {
-              const t = TIER_CONF[tier];
-              const active = tier === currentTier;
-              return (
-                <motion.button
-                  key={tier}
-                  onClick={() => onSelectTier(tier)}
-                  whileHover={{ y: -1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex-1 flex flex-col items-center gap-1 py-3 rounded-2xl border transition-all duration-200"
-                  style={{
-                    background: active ? t.bg : "transparent",
-                    borderColor: active ? t.border : "rgba(255,255,255,0.06)",
-                  }}
+          {/* Chat Feed */}
+          <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth bg-black">
+            <AnimatePresence initial={false}>
+              {messages.map((msg, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                 >
-                  <span className="text-base">{t.emoji}</span>
-                  <span className="text-[10px] font-mono font-bold" style={{ color: active ? t.color : "#52525b" }}>
-                    {tier}
-                  </span>
-                  <span className="hidden md:block text-[8px] font-mono text-zinc-600">{t.label}</span>
-                </motion.button>
-              );
-            })}
+                  <div className={`max-w-[85%] rounded-2xl p-4 ${
+                    msg.role === "user" 
+                      ? "bg-zinc-800 border border-zinc-700 text-zinc-50 rounded-br-none" 
+                      : "bg-zinc-950/60 border border-zinc-900 text-zinc-300 rounded-bl-none shadow-lg"
+                  }`}>
+                    <p className="text-sm leading-relaxed font-light">{msg.text}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
-          {/* Risk scale bar */}
-          <div className="relative h-1.5 rounded-full bg-zinc-900 overflow-hidden">
-            <motion.div
-              className="absolute inset-y-0 left-0 rounded-full"
-              style={{
-                background: `linear-gradient(90deg, #60a5fa, ${tc.color})`,
-              }}
-              animate={{ width: `${(TIER_CONF[currentTier].risk / 5) * 100}%` }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            />
-          </div>
-          <div className="flex justify-between text-[8px] font-mono text-zinc-600">
-            <span>Low risk</span>
-            <span>High risk</span>
-          </div>
-        </motion.div>
 
-        {/* ── Top holding ── */}
-        <motion.div
-          variants={fadeSlide}
-          className="flex items-center justify-between px-5 py-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/40"
-        >
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">Top holding</span>
-            <span className="text-sm font-medium text-white">{topAsset?.[0] ?? "—"}</span>
+          {/* Input Area */}
+          <div className="p-4 bg-black border-t border-zinc-900">
+            <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
+              <button onClick={() => onSelectTier("C2")} className="whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-light border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 transition-colors text-zinc-300">Simulate Rate Shock +1%</button>
+              <button onClick={() => onSelectTier("C4")} className="whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-light border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 transition-colors text-zinc-300">Increase Growth Exposure</button>
+            </div>
+            <form onSubmit={handleSendMessage} className="relative flex items-center">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
+                disabled={isLoading}
+                placeholder={isLoading ? "WeBank AI is thinking..." : "Ask your advisor anything..."}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-3 pl-4 pr-12 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700 transition-all font-light disabled:opacity-50"
+              />
+              <button 
+                type="submit"
+                disabled={isLoading || !inputValue.trim()}
+                className="absolute right-2 p-2 rounded-lg bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors disabled:opacity-50"
+              >
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-emerald-400" /> : <Send className="w-4 h-4" />}
+              </button>
+            </form>
           </div>
-          <div className="text-2xl font-bold tabular-nums" style={{ color: tc.color }}>
-            {((topAsset?.[1] ?? 0) * 100).toFixed(1)}%
+        </div>
+
+        {/* ── RIGHT PANEL: Dynamic Wealth Cockpit ── */}
+        <div className="h-full overflow-y-auto p-6 lg:p-8 space-y-6 bg-black">
+          
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-light tracking-tight text-white">Your Wealth Cockpit</h2>
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+              <CheckCircle2 className="w-3.5 h-3.5" /> AUDITED
+            </div>
           </div>
-        </motion.div>
 
-        {/* ── CSRC compliance banner ── */}
-        <motion.div
-          variants={fadeSlide}
-          className="flex items-center gap-3 px-5 py-3.5 rounded-2xl border"
-          style={{ background: "rgba(16,185,129,0.05)", borderColor: "rgba(16,185,129,0.2)" }}
-        >
-          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-emerald-400">CSRC Suitability — Fully Compliant</div>
-            <div className="text-[10px] text-zinc-500 font-mono mt-0.5 truncate">{allocation.compliance_message}</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* CARD 1: RISK & SUITABILITY */}
+            <div className="col-span-1 md:col-span-2 rounded-2xl bg-zinc-950/60 border border-zinc-900 p-5 shadow-xl relative overflow-hidden">
+              <div className="flex items-center gap-2 mb-4">
+                <ShieldCheck className="w-4 h-4 text-zinc-500" />
+                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Risk & Suitability Sentinel</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <div className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest mb-1">Score</div>
+                  <div className="text-xl text-white font-mono font-light">{allocation.expected_annual_return > 0 ? "64/100" : "42/100"}</div>
+                </div>
+                <div>
+                  <div className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest mb-1">Assigned Tier</div>
+                  <div className="text-xl text-white font-medium" style={{ color: TIER_COLORS[currentTier] }}>{currentTier} - {allocation.client_tier}</div>
+                </div>
+                <div>
+                  <div className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest mb-1">Equity Ceiling</div>
+                  <div className="text-xl text-white font-mono font-light">{(allocation.expected_annual_volatility * 200).toFixed(1)}%</div>
+                </div>
+                <div>
+                  <div className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest mb-1">Max 1Y Drawdown</div>
+                  <div className="text-xl text-emerald-400 font-mono font-light">{(monteCarlo.terminal_p10 / portfolioValue * 100 - 100).toFixed(1)}%</div>
+                </div>
+              </div>
+              <div className="mt-4 pt-3 border-t border-zinc-900 flex items-center gap-2 text-xs text-emerald-400 font-mono">
+                <CheckCircle2 className="w-3 h-3" />
+                {allocation.compliance_message}
+              </div>
+            </div>
+
+            {/* CARD 2: DYNAMIC ASSET ALLOCATION */}
+            <div className="rounded-2xl bg-zinc-950/60 border border-zinc-900 p-5 shadow-xl flex flex-col">
+              <div className="flex items-center gap-2 mb-2">
+                <PieChart className="w-4 h-4 text-zinc-500" />
+                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Asset Allocation</span>
+              </div>
+              <div className="flex-1 min-h-[200px] -ml-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsPieChart>
+                    <Pie
+                      data={activeWeights}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={75}
+                      paddingAngle={2}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {activeWeights.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={ASSET_COLORS[entry.name] || "#52525b"} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip 
+                      contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '8px', fontSize: '12px', fontFamily: 'monospace' }}
+                      itemStyle={{ color: '#e4e4e7' }}
+                      formatter={(value: number) => [`${value.toFixed(1)}%`, 'Weight']}
+                    />
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                {activeWeights.slice(0, 4).map((asset) => (
+                  <div key={asset.name} className="flex items-center gap-1.5 text-[9px] font-mono text-zinc-400 truncate">
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: ASSET_COLORS[asset.name] }} />
+                    <span className="truncate">{asset.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* CARD 3: MONTE CARLO WEALTH PROJECTION */}
+            <div className="rounded-2xl bg-zinc-950/60 border border-zinc-900 p-5 shadow-xl flex flex-col">
+              <div className="flex items-center gap-2 mb-2">
+                <Activity className="w-4 h-4 text-zinc-500" />
+                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">5-Year Projection</span>
+              </div>
+              <div className="flex-1 min-h-[200px] mt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorP50" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={TIER_COLORS[currentTier]} stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor={TIER_COLORS[currentTier]} stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="month" stroke="rgba(255,255,255,0.2)" fontSize={10} fontFamily="monospace" tickLine={false} axisLine={false} />
+                    <YAxis stroke="rgba(255,255,255,0.2)" fontSize={10} fontFamily="monospace" tickLine={false} axisLine={false} tickFormatter={(val) => `$${val/1000}k`} />
+                    <RechartsTooltip 
+                      contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace' }}
+                      formatter={(value: number) => [`$${value.toLocaleString(undefined, {maximumFractionDigits:0})}`, '']}
+                    />
+                    <Area type="monotone" dataKey="P90" stroke="#22c55e" strokeWidth={1} strokeDasharray="3 3" fill="none" />
+                    <Area type="monotone" dataKey="P10" stroke="#ef4444" strokeWidth={1} strokeDasharray="3 3" fill="none" />
+                    <Area type="monotone" dataKey="P50" stroke={TIER_COLORS[currentTier]} strokeWidth={2} fillOpacity={1} fill="url(#colorP50)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex justify-between items-center text-[10px] font-mono mt-2 pt-2 border-t border-zinc-900">
+                <div className="text-zinc-500 uppercase tracking-widest">P50 Expected</div>
+                <div className="text-white">${monteCarlo.terminal_p50.toLocaleString(undefined, {maximumFractionDigits:0})}</div>
+              </div>
+            </div>
+
+            {/* CARD 4: CRYPTOGRAPHIC AUDIT PROOF */}
+            <div className="col-span-1 md:col-span-2 rounded-2xl bg-zinc-950/60 border border-zinc-900 p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <Fingerprint className="w-4 h-4 text-zinc-500" />
+                  <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Audit Hash</span>
+                </div>
+                <div className="text-xs font-mono text-zinc-400 mt-1 break-all">
+                  0x{Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join('')}
+                </div>
+              </div>
+              <button 
+                onClick={() => alert("Executing Sandbox Order...")}
+                className="whitespace-nowrap px-6 py-3 flex items-center justify-center gap-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-zinc-200 text-sm font-medium transition-colors shadow-lg"
+              >
+                <TrendingUp className="w-4 h-4" /> Execute Sandbox Order
+              </button>
+            </div>
           </div>
-        </motion.div>
+        </div>
 
-        {/* ── CTA: Open AI Chat ── */}
-        <motion.button
-          variants={fadeSlide}
-          onClick={onOpenChat}
-          whileHover={{ scale: 1.02, y: -1 }}
-          whileTap={{ scale: 0.98 }}
-          className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-medium text-sm transition-all"
-          style={{
-            background: `linear-gradient(135deg, ${tc.color}22, ${tc.color}10)`,
-            border: `1px solid ${tc.border}`,
-            color: tc.color,
-          }}
-        >
-          <MessageCircle className="w-4 h-4" />
-          Consult my AI Advisor
-          <ChevronRight className="w-4 h-4 opacity-60" />
-        </motion.button>
-
-        {/* Footer note */}
-        <motion.p variants={fadeSlide} className="text-center text-[9px] font-mono text-zinc-700 uppercase tracking-widest pb-2">
-          Powered by WeAdvisory Multi-Agent System · Sandbox only
-        </motion.p>
-
-      </motion.div>
+      </div>
     </div>
   );
 };

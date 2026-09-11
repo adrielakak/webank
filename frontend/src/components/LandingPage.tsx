@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, ChevronDown } from "lucide-react";
+import DecryptedText from "./animations/DecryptedText";
 
 interface LandingPageProps {
   onLaunch: () => void;
@@ -22,6 +23,15 @@ const stagger = {
     transition: { staggerChildren: 0.15 }
   }
 };
+
+// Team Data (placeholders)
+const teamMembers = [
+  { name: "John Doe", role: "Quantitative Analyst", bio: "Algorithmic pricing and stochastic modeling.", colSpan: "md:col-span-2 md:row-span-2" },
+  { name: "Jane Smith", role: "Compliance Officer", bio: "CSRC alignment and regulatory auditing.", colSpan: "md:col-span-1 md:row-span-1" },
+  { name: "Alice Lee", role: "AI Engineer", bio: "LLM integration and prompt engineering.", colSpan: "md:col-span-1 md:row-span-1" },
+  { name: "Bob Chen", role: "Frontend Developer", bio: "Interactive UI/UX and data visualization.", colSpan: "md:col-span-1 md:row-span-1" },
+  { name: "David Wong", role: "Product Manager", bio: "User journeys and business strategy.", colSpan: "md:col-span-1 md:row-span-1" }
+];
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
   return (
@@ -63,7 +73,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
           </span>
         </div>
         <div className="flex gap-6 items-center pointer-events-auto">
-          <a href="#" className="hidden md:block text-xs font-mono text-zinc-500 hover:text-white uppercase tracking-widest transition-colors">Team</a>
+          <a href="#team" className="hidden md:block text-xs font-mono text-zinc-500 hover:text-white uppercase tracking-widest transition-colors">Team</a>
           <a href="#" className="hidden md:block text-xs font-mono text-zinc-500 hover:text-white uppercase tracking-widest transition-colors">Hackathon</a>
           <button
             onClick={onLaunch}
@@ -75,16 +85,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
       </nav>
 
       {/* ── Hero ── */}
-      <section className="min-h-screen flex flex-col justify-center px-6 md:px-12 pt-24 pb-12 relative z-10">
+      <section className="min-h-screen flex flex-col md:flex-row items-center justify-between px-6 md:px-12 pt-24 pb-12 relative z-10 gap-12">
         <motion.div
           initial="hidden"
           animate="visible"
           variants={stagger}
-          className="max-w-5xl mx-auto w-full text-center md:text-left flex flex-col md:items-start items-center"
+          className="max-w-3xl w-full text-center md:text-left flex flex-col md:items-start items-center"
         >
           <motion.h1 variants={fadeUp} className="text-5xl md:text-7xl lg:text-[96px] font-light tracking-tighter leading-[1.05] mb-6">
-            Advisory. <br />
-            Redefined.
+            <DecryptedText text="Advisory." animateOn="view" sequential={true} speed={50} maxIterations={10} revealDirection="start" /> <br />
+            <DecryptedText text="Redefined." animateOn="view" sequential={true} speed={50} maxIterations={10} revealDirection="start" />
           </motion.h1>
           <motion.p variants={fadeUp} className="text-lg md:text-xl text-zinc-400 font-light max-w-2xl mb-12 leading-relaxed">
             The institutional wealth cockpit built for the Shenzhen University & WeBank Hackathon. Real-time Markowitz optimization and strict CSRC compliance.
@@ -150,6 +160,50 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
             </motion.div>
           </div>
         </motion.div>
+      </section>
+
+      {/* ── Our Team Bento Grid ── */}
+      <section id="team" className="py-24 px-6 md:px-12 relative z-10 max-w-7xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="mb-16 text-center md:text-left"
+        >
+          <h2 className="text-3xl md:text-5xl font-light tracking-tight mb-4">Our Team</h2>
+          <p className="text-zinc-500 font-mono text-sm tracking-widest uppercase">The Minds Behind WeAdvisory</p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4 auto-rows-[300px]">
+          {teamMembers.map((member, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: i * 0.1 }}
+              className={`group relative overflow-hidden rounded-3xl bg-zinc-900/50 border border-zinc-800 p-8 flex flex-col justify-end hover:border-zinc-700 transition-colors ${member.colSpan}`}
+            >
+              {/* Image Placeholder */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
+              <div className="absolute inset-0 bg-zinc-800 flex items-center justify-center opacity-50 group-hover:scale-105 transition-transform duration-700">
+                <span className="text-zinc-600 font-mono text-xs tracking-widest uppercase">Image Placeholder</span>
+              </div>
+              
+              {/* Content */}
+              <div className="relative z-20 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                <h3 className="text-2xl font-light mb-1">{member.name}</h3>
+                <p className="text-zinc-400 font-mono text-xs tracking-widest uppercase mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
+                  {member.role}
+                </p>
+                <p className="text-sm text-zinc-500 font-light opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-150">
+                  {member.bio}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </section>
 
       {/* ── FAQ ── */}

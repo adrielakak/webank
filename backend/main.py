@@ -7,9 +7,13 @@ Exposes the quantitative engine, compliance sentinel, and audit ledger.
 import os
 import json
 from typing import Dict, List, Optional
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from dotenv import load_dotenv
+import time
+
+load_dotenv()
 
 from engine import (
     InvestorRiskLevel,
@@ -33,6 +37,21 @@ app = FastAPI(
     description="Compliant & Explainable Wealth Advisory Engine (CSRC C1-C5 / WeBank Standards)",
     version="1.0.0"
 )
+
+# Simple in-memory rate limiter
+RATE_LIMIT_DB = {}
+RATE_LIMIT_MAX = 5
+RATE_LIMIT_WINDOW = 60
+
+def check_rate_limit(ip: str):
+    now = time.time()
+    if ip not in RATE_LIMIT_DB:
+        RATE_LIMIT_DB[ip] = []
+    # clean old entries
+    RATE_LIMIT_DB[ip] = [t for t in RATE_LIMIT_DB[ip] if now - t < RATE_LIMIT_WINDOW]
+    if len(RATE_LIMIT_DB[ip]) >= RATE_LIMIT_MAX:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    RATE_LIMIT_DB[ip].append(now)
 
 # Enable CORS for local and web development
 app.add_middleware(
@@ -99,6 +118,18 @@ class AuditRequest(BaseModel):
     compliance_status: str
     violations: List[str]
     weights: Dict[str, float]
+
+
+class ChatMessage(BaseModel):
+    role: str
+    text: str
+
+class ChatRequest(BaseModel):
+    message: str
+    history: List[ChatMessage] = []
+
+class ChatResponse(BaseModel):
+    response: str
 
 
 # --- API Endpoints ---
@@ -297,3 +328,18 @@ def get_audit_records(limit: int = Query(20, ge=1, le=100)):
     # Return latest records first
     records.reverse()
     return records[:limit]
+
+
+@app.post("/api/chat", response_model=ChatResponse)
+def chat_endpoint(request: Request, req: ChatRequest):
+    ip = request.client.host if request.client else "127.0.0.1"
+    check_rate_limit(ip)
+    """
+    Connects to the WeBank AI agent for conversational wealth advisory.
+    Uses Gemini tool calling to trigger deterministic quant engine functions.
+    """
+    from backend.agent import chat_with_agent
+    history_dicts = [{"role": msg.role, "text": msg.text} for msg in req.history]
+    answer = chat_with_agent(req.message, history_dicts)
+    return ChatResponse(response=answer)
+

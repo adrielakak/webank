@@ -9,6 +9,10 @@ export default {
     extend: {
       colors: {
         background: "#0B0F17",
+        foreground: "#fafafa",
+        border: "rgba(255, 255, 255, 0.08)",
+        input: "rgba(255, 255, 255, 0.08)",
+        ring: "#0066FF",
         surface: "#131B2A",
         surfaceBorder: "rgba(255, 255, 255, 0.08)",
         webankBlue: "#0066FF",

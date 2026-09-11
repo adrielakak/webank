@@ -252,3 +252,21 @@ export async function fetchAuditRecords(): Promise<ComplianceAuditRecord[]> {
     },
   ];
 }
+
+export async function sendMessageToAgent(message: string, history: {role: string, text: string}[]): Promise<string> {
+  try {
+    const res = await fetch(`${API_BASE}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, history }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.response;
+    }
+    return "⚠️ Sorry, the WeBank AI system is currently unavailable.";
+  } catch (e) {
+    console.error("Chat API error:", e);
+    return "⚠️ Communication error. Please check your connection to the WeBank Gateway.";
+  }
+}
