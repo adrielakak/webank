@@ -100,8 +100,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* ── Mode Toggle (Simple ↔ Expert) — centre de l'attention ── */}
         <div className="flex items-center shrink-0">
-          <button
-            onClick={onToggleMode}
+          <div
             className="relative flex items-center rounded-full p-0.5 bg-zinc-900 border border-zinc-800"
             style={{ gap: 0 }}
           >
@@ -137,7 +136,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <BarChart2 className="w-2.5 h-2.5" />
               Expert
             </button>
-          </button>
+          </div>
         </div>
 
         <div className="w-px h-4 shrink-0 bg-zinc-900" />

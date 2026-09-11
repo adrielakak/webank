@@ -56,6 +56,7 @@ const fadeSlide = {
 
 /* ── Monte Carlo SVG Chart (3 lines + area bands) ── */
 function MonteCarloChart({ mc, color }: { mc: MonteCarloPath; color: string }) {
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const W = 800, H = 220;
   const allVals = [...mc.p10_pessimistic, ...mc.p50_median, ...mc.p90_optimistic];
   const minV = Math.min(...allVals) * 0.97;
@@ -85,7 +86,7 @@ function MonteCarloChart({ mc, color }: { mc: MonteCarloPath; color: string }) {
   const yearLabels = [0, 12, 24, 36, 48, 60];
 
   return (
-    <div className="w-full relative">
+    <div className="w-full relative" onMouseLeave={() => setHoverIdx(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 160 }} preserveAspectRatio="xMidYMid meet">
         <defs>
           <linearGradient id="mcGrad" x1="0" y1="0" x2="0" y2="1">
@@ -148,7 +149,45 @@ function MonteCarloChart({ mc, color }: { mc: MonteCarloPath; color: string }) {
             strokeWidth="1"
           />
         ))}
+
+        {/* Hover interaction */}
+        {hoverIdx !== null && (
+          <g>
+            <line x1={gx(hoverIdx)} y1={0} x2={gx(hoverIdx)} y2={H} stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="2 2" />
+            <circle cx={gx(hoverIdx)} cy={gy(mc.p50_median[hoverIdx])} r={4} fill={color} />
+            <circle cx={gx(hoverIdx)} cy={gy(mc.p10_pessimistic[hoverIdx])} r={3} fill="#ef4444" opacity={0.8} />
+            <circle cx={gx(hoverIdx)} cy={gy(mc.p90_optimistic[hoverIdx])} r={3} fill="#22c55e" opacity={0.8} />
+          </g>
+        )}
+        
+        {/* Invisible hit areas */}
+        {mc.months.map((_, i) => (
+          <rect
+            key={`hit-${i}`}
+            x={gx(i) - (W / n) / 2}
+            y={0}
+            width={W / n}
+            height={H}
+            fill="transparent"
+            onMouseEnter={() => setHoverIdx(i)}
+            className="cursor-crosshair"
+          />
+        ))}
       </svg>
+
+      {/* Tooltip */}
+      {hoverIdx !== null && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-zinc-900 border border-zinc-700 text-[10px] font-mono px-3 py-2 rounded-lg shadow-xl pointer-events-none z-10">
+          <div className="text-zinc-500 mb-1 font-sans text-xs">
+            Year {(hoverIdx / 12).toFixed(1)} (Month {hoverIdx})
+          </div>
+          <div className="flex gap-4">
+            <div className="text-green-400">P90: ${Math.round(mc.p90_optimistic[hoverIdx]).toLocaleString()}</div>
+            <div style={{ color }}>P50: ${Math.round(mc.p50_median[hoverIdx]).toLocaleString()}</div>
+            <div className="text-red-400">P10: ${Math.round(mc.p10_pessimistic[hoverIdx]).toLocaleString()}</div>
+          </div>
+        </div>
+      )}
 
       {/* X-axis labels */}
       <div className="flex justify-between px-1 mt-1">
@@ -273,18 +312,14 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
         <span className="font-mono text-zinc-600 text-[10px] uppercase tracking-widest">
           Sandbox · Markowitz Optimal Portfolio
         </span>
-        <AnimatePresence mode="wait">
-          <motion.h1
-            key={allocation.client_tier}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.3 }}
-            className="text-5xl md:text-6xl font-bold tracking-tighter tabular-nums leading-none text-white"
-          >
-            ${aumDisplay.toLocaleString("en-US")}
-          </motion.h1>
-        </AnimatePresence>
+        <motion.h1
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="text-5xl md:text-6xl font-bold tracking-tighter tabular-nums leading-none text-white"
+        >
+          ${aumDisplay.toLocaleString("en-US")}
+        </motion.h1>
         <div className={`text-base font-medium tabular-nums ${isGain ? "text-red-400" : "text-green-400"}`}>
           {isGain ? "+" : ""}{retDisplay.toFixed(2)}% · {allocation.client_tier} {isGain ? "平衡型" : "—"}
         </div>

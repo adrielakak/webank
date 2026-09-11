@@ -25,16 +25,53 @@ const stagger = {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-zinc-800 selection:text-white">
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-zinc-800 selection:text-white relative overflow-hidden">
+      {/* Dynamic Animated Background */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+        <motion.div
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.1, 0.2, 0.1],
+            rotate: [0, 90, 0]
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute -top-[50%] -left-[20%] w-[150%] h-[150%] rounded-full opacity-20 blur-[120px]"
+          style={{
+            background: "radial-gradient(circle, rgba(63,63,70,0.4) 0%, rgba(0,0,0,0) 60%)"
+          }}
+        />
+        <motion.div
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.05, 0.15, 0.05],
+            x: [0, 100, 0]
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[20%] right-[10%] w-[80%] h-[80%] rounded-full opacity-20 blur-[100px]"
+          style={{
+            background: "radial-gradient(circle, rgba(161,161,170,0.2) 0%, rgba(0,0,0,0) 60%)"
+          }}
+        />
+      </div>
+
       {/* ── Navigation ── */}
-      <nav className="fixed top-0 inset-x-0 z-50 px-6 py-6 md:px-12 md:py-10 flex items-center justify-between pointer-events-none">
-        <div className="font-semibold text-lg tracking-tight pointer-events-auto">WeAdvisory</div>
-        <button
-          onClick={onLaunch}
-          className="text-sm font-medium hover:opacity-70 transition-opacity pointer-events-auto"
-        >
-          Sandbox
-        </button>
+      <nav className="fixed top-0 inset-x-0 z-50 px-6 py-6 md:px-12 md:py-8 flex items-center justify-between pointer-events-none">
+        <div className="font-semibold text-lg tracking-tight pointer-events-auto flex items-center gap-2">
+          WeAdvisory
+          <span className="hidden md:inline-block px-2 py-0.5 ml-2 rounded text-[10px] uppercase font-mono tracking-widest bg-zinc-900 border border-zinc-800 text-zinc-400">
+            Shenzhen Univ × WeBank
+          </span>
+        </div>
+        <div className="flex gap-6 items-center pointer-events-auto">
+          <a href="#" className="hidden md:block text-xs font-mono text-zinc-500 hover:text-white uppercase tracking-widest transition-colors">Team</a>
+          <a href="#" className="hidden md:block text-xs font-mono text-zinc-500 hover:text-white uppercase tracking-widest transition-colors">Hackathon</a>
+          <button
+            onClick={onLaunch}
+            className="text-sm font-medium hover:text-zinc-300 transition-colors"
+          >
+            Enter Sandbox
+          </button>
+        </div>
       </nav>
 
       {/* ── Hero ── */}
@@ -45,21 +82,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
           variants={stagger}
           className="max-w-5xl mx-auto w-full text-center md:text-left flex flex-col md:items-start items-center"
         >
-          <motion.h1 variants={fadeUp} className="text-6xl md:text-8xl lg:text-[120px] font-light tracking-tighter leading-[0.9] mb-8">
+          <motion.h1 variants={fadeUp} className="text-5xl md:text-7xl lg:text-[96px] font-light tracking-tighter leading-[1.05] mb-6">
             Advisory. <br />
             Redefined.
           </motion.h1>
-          <motion.p variants={fadeUp} className="text-xl md:text-2xl text-zinc-500 font-light max-w-2xl mb-16 leading-relaxed">
-            The institutional wealth cockpit for WeBank. Real-time Markowitz optimization, stochastic modeling, and strict CSRC compliance.
+          <motion.p variants={fadeUp} className="text-lg md:text-xl text-zinc-400 font-light max-w-2xl mb-12 leading-relaxed">
+            The institutional wealth cockpit built for the Shenzhen University & WeBank Hackathon. Real-time Markowitz optimization and strict CSRC compliance.
           </motion.p>
           
           <motion.div variants={fadeUp} className="flex flex-wrap items-center gap-6">
             <button
               onClick={onLaunch}
-              className="group flex items-center gap-4 text-2xl md:text-3xl font-light hover:text-zinc-400 transition-colors pointer-events-auto bg-zinc-900/80 hover:bg-zinc-800/80 border border-zinc-800 px-8 py-4 rounded-2xl"
+              className="group flex items-center gap-3 text-lg md:text-xl font-light hover:text-zinc-300 transition-colors pointer-events-auto bg-white hover:bg-zinc-200 text-black px-6 py-3 rounded-full"
             >
               Launch Sandbox
-              <ArrowRight className="w-6 h-6 md:w-8 md:h-8 group-hover:translate-x-2 transition-transform text-white" />
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
           </motion.div>
         </motion.div>

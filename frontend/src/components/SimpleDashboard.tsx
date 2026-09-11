@@ -55,40 +55,74 @@ const fadeSlide = {
 
 /* ── Sparkline (single smooth P50 curve) ────────────────────────── */
 function Sparkline({ data, color }: { data: number[]; color: string }) {
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const W = 600, H = 100;
   const min = Math.min(...data), max = Math.max(...data);
-  const xs = data.map((_, i) => (i / (data.length - 1)) * W);
+  const n = data.length;
+  const xs = data.map((_, i) => (i / (n - 1)) * W);
   const ys = data.map(v => H - ((v - min) / (max - min)) * H * 0.85 - H * 0.075);
 
   const d = xs.map((x, i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${ys[i].toFixed(1)}`).join(" ");
   const areaD = `${d} L${W},${H} L0,${H} Z`;
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-full" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="2" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-      </defs>
-      <path d={areaD} fill="url(#sparkGrad)" />
-      <motion.path
-        d={d}
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        filter="url(#glow)"
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={{ pathLength: 1, opacity: 1 }}
-        transition={{ duration: 1.6, ease: "easeOut", delay: 0.3 }}
-      />
-    </svg>
+    <div className="w-full h-full relative" onMouseLeave={() => setHoverIdx(null)}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-full" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
+        <path d={areaD} fill="url(#sparkGrad)" />
+        <motion.path
+          d={d}
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          filter="url(#glow)"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{ duration: 1.6, ease: "easeOut", delay: 0.3 }}
+        />
+
+        {/* Hover interaction */}
+        {hoverIdx !== null && (
+          <g>
+            <line x1={xs[hoverIdx]} y1={0} x2={xs[hoverIdx]} y2={H} stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="2 2" />
+            <circle cx={xs[hoverIdx]} cy={ys[hoverIdx]} r={3} fill={color} />
+          </g>
+        )}
+        
+        {/* Invisible hit areas */}
+        {data.map((_, i) => (
+          <rect
+            key={`hit-${i}`}
+            x={xs[i] - (W / n) / 2}
+            y={0}
+            width={W / n}
+            height={H}
+            fill="transparent"
+            onMouseEnter={() => setHoverIdx(i)}
+            className="cursor-crosshair"
+          />
+        ))}
+      </svg>
+      
+      {/* Tooltip */}
+      {hoverIdx !== null && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-zinc-900 border border-zinc-700 text-[10px] font-mono px-2 py-1 rounded shadow-lg pointer-events-none z-10 whitespace-nowrap">
+          <span className="text-zinc-500 mr-2">M{hoverIdx}</span>
+          <span style={{ color }}>${Math.round(data[hoverIdx]).toLocaleString()}</span>
+        </div>
+      )}
+    </div>
   );
 }
 
