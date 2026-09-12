@@ -89,6 +89,7 @@ class DiagnosticResponse(BaseModel):
 
 class OptimizeRequest(BaseModel):
     client_tier: InvestorRiskLevel = InvestorRiskLevel.C3_BALANCED
+    excluded_assets: List[str] = []
     risk_free_rate: float = 0.035
 
 
@@ -127,6 +128,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     history: List[ChatMessage] = []
+    client_tier: str = "C3"
 
 class ChatResponse(BaseModel):
     response: str
@@ -248,7 +250,7 @@ def optimize(req: OptimizeRequest):
     Runs deterministic Markowitz mean-variance optimization with CSRC suitability constraints.
     """
     try:
-        allocation = optimize_portfolio(req.client_tier, req.risk_free_rate)
+        allocation = optimize_portfolio(req.client_tier, req.risk_free_rate, excluded_assets=req.excluded_assets)
         return allocation
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Optimization solver error: {str(e)}")
@@ -340,6 +342,6 @@ def chat_endpoint(request: Request, req: ChatRequest):
     """
     from backend.agent import chat_with_agent
     history_dicts = [{"role": msg.role, "text": msg.text} for msg in req.history]
-    answer = chat_with_agent(req.message, history_dicts)
+    answer = chat_with_agent(req.message, history_dicts, req.client_tier)
     return ChatResponse(response=answer)
 

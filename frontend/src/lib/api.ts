@@ -66,12 +66,12 @@ export async function evaluateProfile(params: {
   };
 }
 
-export async function optimizePortfolio(tier: InvestorRiskLevel): Promise<PortfolioAllocation> {
+export async function optimizePortfolio(clientTier: InvestorRiskLevel, excludedAssets: string[] = []): Promise<PortfolioAllocation> {
   try {
     const res = await fetch(`${API_BASE}/optimize`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ client_tier: tier, risk_free_rate: 0.035 }),
+      body: JSON.stringify({ client_tier: clientTier, excluded_assets: excludedAssets, risk_free_rate: 0.035 }),
     });
     if (res.ok) return await res.json();
   } catch (e) {
@@ -253,12 +253,12 @@ export async function fetchAuditRecords(): Promise<ComplianceAuditRecord[]> {
   ];
 }
 
-export async function sendMessageToAgent(message: string, history: {role: string, text: string}[]): Promise<string> {
+export async function sendMessageToAgent(message: string, history: {role: string, text: string}[], clientTier: string = "C3"): Promise<string> {
   try {
     const res = await fetch(`${API_BASE}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, history }),
+      body: JSON.stringify({ message, history, client_tier: clientTier }),
     });
     if (res.ok) {
       const data = await res.json();

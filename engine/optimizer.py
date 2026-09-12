@@ -44,7 +44,8 @@ MAX_CASH_ALLOCATION: Dict[InvestorRiskLevel, float] = {
 
 def optimize_portfolio(
     client_tier: InvestorRiskLevel,
-    risk_free_rate: float = 0.035
+    risk_free_rate: float = 0.035,
+    excluded_assets: List[str] = None
 ) -> PortfolioAllocation:
     """
     Computes the optimal asset weights for a given investor risk level.
@@ -79,6 +80,11 @@ def optimize_portfolio(
     cash_cap = MAX_CASH_ALLOCATION[client_tier]
     for i, asset_id in enumerate(ASSET_IDS):
         low, high = raw_bounds[i]
+        
+        # Override bounds if asset is excluded
+        if excluded_assets and asset_id in excluded_assets:
+            high = 0.0
+            
         if asset_id == "CASH-USD":
             bounds.append((low, min(high, cash_cap)))
         else:

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { ChatMessage, InvestorRiskLevel } from "../types";
 import { ProductComparisonCard } from "./ProductComparisonCard";
+import ReactMarkdown from "react-markdown";
 
 interface ChatPanelProps {
   messages: ChatMessage[];
@@ -32,75 +33,6 @@ const TIER_META: Record<InvestorRiskLevel, { label: string; sub: string; color: 
   C5: { label: "C5", sub: "激进型", color: "#ef4444", bg: "rgba(239,68,68,0.10)", border: "rgba(239,68,68,0.22)" },
 };
 
-/* ── Simple markdown-ish renderer ──────────────────────────────────────── */
-function renderMarkdown(text: string): React.ReactNode[] {
-  const lines = text.split("\n");
-  const result: React.ReactNode[] = [];
-  let tableBuffer: string[] = [];
-  let inTable = false;
-
-  const flushTable = () => {
-    if (tableBuffer.length < 2) { tableBuffer = []; inTable = false; return; }
-    const headers = tableBuffer[0].split("|").map(s => s.trim()).filter(Boolean);
-    const rows = tableBuffer.slice(2).map(r => r.split("|").map(s => s.trim()).filter(Boolean));
-    result.push(
-      <div key={`tbl-${result.length}`} className="overflow-x-auto my-2">
-        <table className="w-full border-collapse text-[11px] font-mono">
-          <thead>
-            <tr style={{ borderBottom: "1px solid var(--border-raised)" }}>
-              {headers.map((h, i) => (
-                <th key={i} className="text-left px-2 py-1.5 font-semibold text-zinc-300">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, ri) => (
-              <tr key={ri} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
-                {row.map((cell, ci) => (
-                  <td key={ci} className="px-2 py-1 text-zinc-400">{cell}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-    tableBuffer = []; inTable = false;
-  };
-
-  lines.forEach((line, i) => {
-    if (line.startsWith("|")) {
-      inTable = true;
-      tableBuffer.push(line);
-      return;
-    }
-    if (inTable) flushTable();
-
-    if (!line.trim()) { result.push(<div key={i} className="h-1.5" />); return; }
-
-    // Bold
-    const parts = line.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
-    const inline = parts.map((p, pi) => {
-      if (p.startsWith("**") && p.endsWith("**")) return <strong key={pi} className="text-white font-medium">{p.slice(2, -2)}</strong>;
-      if (p.startsWith("`") && p.endsWith("`")) return <code key={pi} className="font-mono text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300">{p.slice(1, -1)}</code>;
-      return p;
-    });
-
-    // Bullet
-    if (line.trim().startsWith("•") || line.trim().startsWith("-") || /^\d+\./.test(line.trim())) {
-      result.push(<div key={i} className="flex gap-2 text-sm leading-relaxed text-zinc-300">
-        <span className="text-zinc-500 shrink-0 mt-0.5">·</span>
-        <span>{inline}</span>
-      </div>);
-      return;
-    }
-
-    result.push(<p key={i} className="text-sm leading-relaxed text-zinc-300">{inline}</p>);
-  });
-
-  if (inTable) flushTable();
-  return result;
-}
 
 /* ── Typing indicator ───────────────────────────────────────────────────── */
 function TypingIndicator() {
@@ -141,7 +73,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 50);
   }, [messages, isTyping]);
 
   const handleSend = () => {
@@ -224,7 +158,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                     {isComparison ? (
                       <ProductComparisonCard />
                     ) : (
-                      renderMarkdown(msg.content)
+                      <div className="prose prose-invert prose-sm">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
                     )}
                   </div>
                 </div>

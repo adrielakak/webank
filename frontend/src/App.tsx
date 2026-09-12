@@ -6,6 +6,7 @@ import { ChatPanel } from "./components/ChatPanel";
 import { CockpitPanel } from "./components/CockpitPanel";
 import { AuditModal } from "./components/AuditModal";
 import { SimpleDashboard } from "./components/SimpleDashboard";
+import { RiskProfilingWizard } from "./components/RiskProfilingWizard";
 import {
   InvestorRiskLevel,
   PortfolioAllocation,
@@ -13,12 +14,12 @@ import {
   ComplianceAuditRecord,
   ChatMessage,
 } from "./types";
-import { RiskProfilingWizard } from "./components/RiskProfilingWizard";
 import {
   optimizePortfolio,
   simulateMonteCarlo,
   createAuditRecord,
   fetchAuditRecords,
+  sendMessageToAgent,
 } from "./lib/api";
 
 type DashboardMode = "simple" | "expert";
@@ -46,6 +47,8 @@ export function App() {
   const [isRebalancing, setIsRebalancing] = useState(false);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [auditRecords, setAuditRecords] = useState<ComplianceAuditRecord[]>([]);
+  const [isWizardComplete, setIsWizardComplete] = useState(false);
+  const [excludedAssets, setExcludedAssets] = useState<string[]>([]);
 
   const [allocation, setAllocation] = useState<PortfolioAllocation>({
     client_tier: "C3",
@@ -89,15 +92,7 @@ export function App() {
 
   const [currentAudit, setCurrentAudit] = useState<ComplianceAuditRecord | null>(null);
 
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "msg_1",
-      role: "assistant",
-      content:
-        "Welcome Sarah! I have analyzed your 7-year horizon and moderate risk profile. Under WeBank's **CSRC Suitability Framework**, you are formally assigned to **C3 平衡型 (Balanced)**.\n\nYour optimal Markowitz portfolio targets **6.00% annual return** with a low **5.53% volatility**, blending global dividend equities, corporate debt, gold, and US Treasuries. All allocations satisfy CSRC investor suitability boundaries.\n\nHow can I assist your wealth strategy today?",
-      timestamp: "10:14 AM",
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   useEffect(() => {
     fetchAuditRecords().then((records) => {
@@ -106,12 +101,18 @@ export function App() {
     });
   }, []);
 
-  const handleSelectTier = async (tier: InvestorRiskLevel) => {
+  const handleCompleteWizard = async (tier: InvestorRiskLevel) => {
+    setCurrentTier(tier);
+    setIsWizardComplete(true);
+    await handleSelectTier(tier);
+  };
+
+  const handleSelectTier = async (tier: InvestorRiskLevel, exAssets: string[] = excludedAssets, val: number = portfolioValue) => {
     setCurrentTier(tier);
     try {
-      const newAlloc = await optimizePortfolio(tier);
+      const newAlloc = await optimizePortfolio(tier, exAssets);
       setAllocation(newAlloc);
-      const newMC = await simulateMonteCarlo(newAlloc, portfolioValue, 5);
+      const newMC = await simulateMonteCarlo(newAlloc, val, 5);
       setMonteCarlo(newMC);
 
       const audit = await createAuditRecord({
@@ -147,40 +148,59 @@ export function App() {
     }
   };
 
-  const handleSendMessage = (text: string) => {
+  const handleUpdatePortfolioValue = (newVal: number) => {
+    setPortfolioValue(newVal);
+    handleSelectTier(currentTier, excludedAssets, newVal);
+  };
+
+  const handleToggleAsset = (assetId: string) => {
+    const newEx = excludedAssets.includes(assetId) 
+      ? excludedAssets.filter(a => a !== assetId)
+      : [...excludedAssets, assetId];
+    setExcludedAssets(newEx);
+    handleSelectTier(currentTier, newEx, portfolioValue);
+  };
+
+  const handleSendMessage = async (text: string) => {
     const userMsg: ChatMessage = {
       id: `usr_${Date.now()}`,
       role: "user",
       content: text,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
-    setMessages((prev) => [...prev, userMsg]);
+    
+    // We must pass the updated messages array to the agent
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
 
-    setTimeout(() => {
-      const lower = text.toLowerCase();
-      let reply = "";
-      if (lower.includes("gold") || lower.includes("10.8")) {
-        reply =
-          "**Why Physical Gold (10.8%) is included:**\n\n1. **Negative Equity Correlation**: Gold has a correlation of only 0.08 with MSCI World, acting as an empirical hedge against inflation and equity drawdowns.\n2. **Sharpe Optimization**: Adding 10.8% gold expands the Markowitz efficient frontier, reducing portfolio volatility from 6.8% down to **5.53%**.\n3. **CSRC Suitability**: Under CSRC Category R3, physical gold is classified as medium-risk, fully compliant with your C3 profile.";
-      } else if (lower.includes("rate") || lower.includes("shock")) {
-        reply =
-          "⚡ **Rate Shock Stress-Test (+100 bps):**\n\n• **Sovereign Bonds**: US 7-10Y Treasuries → theoretical -7.2% price adjustment.\n• **IG Credit**: Wider spreads (-4.5%).\n• **Cash Benefit**: 20% cash allocation immediately yields +100 bps more.\n• **Net Impact**: Composite drawdown limited to **-1.92%**, well within your C3 tolerance (-10.0%).";
-      } else if (lower.includes("c3") && lower.includes("c4")) {
-        reply =
-          "**C3 vs C4 Product Comparison:**\n\n| Metric | C3 Balanced | C4 Growth |\n|---|---|---|\n| Expected Return | 6.00% | 9.69% |\n| Volatility | 5.53% | 13.85% |\n| Sharpe Ratio | 0.45 | 0.62 |\n| Max Drawdown | -10% cap | -20% cap |\n| Risk Tier | R3 | R4 |\n\n**Recommendation**: C4 offers higher Sharpe but requires formal re-profiling under CSRC rules before any product switch.";
-      } else {
-        reply = `Based on your current **${currentTier} strategy**, your portfolio is mathematically optimized to capture upside while hedging downside risks. Your current expected Sharpe ratio is **${allocation.sharpe_ratio}**. Would you like to stress-test a market shock or compare products?`;
-      }
+    try {
+      const history = newMessages.map(m => ({ 
+        role: m.role === "assistant" || m.role === "sentinel" ? "agent" : "user", 
+        text: m.content 
+      }));
+      
+      const responseText = await sendMessageToAgent(text, history.slice(0, -1), currentTier); // exclude current message
+      
       setMessages((prev) => [
         ...prev,
         {
           id: `bot_${Date.now()}`,
           role: "assistant",
-          content: reply,
+          content: responseText,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
-    }, 600);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `bot_${Date.now()}`,
+          role: "assistant",
+          content: "⚠️ WeBank Agent could not be reached.",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+    }
   };
 
   const handleTriggerRogueTrade = () => {
@@ -232,16 +252,8 @@ export function App() {
   };
 
   const handleResetSession = () => {
-    handleSelectTier("C3");
-    setMessages([
-      {
-        id: `msg_init_${Date.now()}`,
-        role: "assistant",
-        content:
-          "Session reset. Reinitialized with Sarah Jenkins (C3 Balanced) sandbox account. How can I help you explore your asset allocation?",
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      },
-    ]);
+    setIsWizardComplete(false);
+    setMessages([]);
   };
 
   /* ── Dashboard layout ─────────────────────────────────────────── */
@@ -261,6 +273,9 @@ export function App() {
             monteCarlo={monteCarlo}
             currentTier={currentTier}
             portfolioValue={portfolioValue}
+            excludedAssets={excludedAssets}
+            onUpdatePortfolioValue={handleUpdatePortfolioValue}
+            onToggleAsset={handleToggleAsset}
             onOpenChat={() => setChatOpen(true)}
             onSelectTier={handleSelectTier}
           />
@@ -370,6 +385,10 @@ export function App() {
             onClose={() => setIsAuditModalOpen(false)}
             records={auditRecords}
           />
+
+          {!isWizardComplete && (
+            <RiskProfilingWizard onComplete={handleCompleteWizard} />
+          )}
         </motion.div>
       )}
     </AnimatePresence>

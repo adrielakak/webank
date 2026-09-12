@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, PieChart, Activity, Send, CheckCircle2, AlertTriangle, Fingerprint, TrendingUp, Loader2 } from "lucide-react";
+import { ShieldCheck, PieChart, Activity, Send, CheckCircle2, TrendingUp, Loader2, Settings2 } from "lucide-react";
 import { PortfolioAllocation, MonteCarloPath, InvestorRiskLevel } from "../types";
 import { PieChart as RechartsPieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
 import { sendMessageToAgent } from "../lib/api";
+import ReactMarkdown from 'react-markdown';
 
 interface SimpleDashboardProps {
   allocation: PortfolioAllocation;
   monteCarlo: MonteCarloPath;
   currentTier: InvestorRiskLevel;
   portfolioValue: number;
+  excludedAssets: string[];
+  onUpdatePortfolioValue: (val: number) => void;
+  onToggleAsset: (assetId: string) => void;
   onOpenChat: () => void;
   onSelectTier: (tier: InvestorRiskLevel) => void;
 }
@@ -41,6 +45,9 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   monteCarlo,
   currentTier,
   portfolioValue,
+  excludedAssets,
+  onUpdatePortfolioValue,
+  onToggleAsset,
   onOpenChat,
   onSelectTier,
 }) => {
@@ -58,6 +65,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   }));
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState([
     { role: "agent", text: "Hello Sarah! Let's build your wealth strategy. To calibrate your portfolio, how would you react if market volatility caused a 10% drawdown in a month?" },
     { role: "user", text: "I'm saving for a down payment in 6 yrs. I want growth, but I can't afford to lose my core capital." },
@@ -65,6 +73,27 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isAssetsModalOpen, setIsAssetsModalOpen] = useState(false);
+
+  const processAgentResponse = (text: string) => {
+    let cleanText = text;
+    
+    // Check for SET_TIER
+    const tierMatch = text.match(/\[ACTION:\s*SET_TIER,\s*(C[1-5])\]/);
+    if (tierMatch && tierMatch[1]) {
+      onSelectTier(tierMatch[1] as InvestorRiskLevel);
+      cleanText = cleanText.replace(tierMatch[0], "");
+    }
+    
+    // Check for SET_CAPITAL
+    const capitalMatch = text.match(/\[ACTION:\s*SET_CAPITAL,\s*(\d+)\]/);
+    if (capitalMatch && capitalMatch[1]) {
+      onUpdatePortfolioValue(Number(capitalMatch[1]));
+      cleanText = cleanText.replace(capitalMatch[0], "");
+    }
+    
+    return cleanText.trim();
+  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,8 +105,9 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
     setIsLoading(true);
     
     try {
-      const responseText = await sendMessageToAgent(userMessage, messages);
-      setMessages(prev => [...prev, { role: "agent", text: responseText }]);
+      const responseText = await sendMessageToAgent(userMessage, messages, currentTier);
+      const cleanText = processAgentResponse(responseText);
+      setMessages(prev => [...prev, { role: "agent", text: cleanText }]);
     } catch (error) {
       setMessages(prev => [...prev, { role: "agent", text: "⚠️ WeBank Agent could not be reached." }]);
     } finally {
@@ -90,8 +120,9 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
     setMessages(prev => [...prev, { role: "user", text: prompt }]);
     setIsLoading(true);
     try {
-      const responseText = await sendMessageToAgent(prompt, messages);
-      setMessages(prev => [...prev, { role: "agent", text: responseText }]);
+      const responseText = await sendMessageToAgent(prompt, messages, currentTier);
+      const cleanText = processAgentResponse(responseText);
+      setMessages(prev => [...prev, { role: "agent", text: cleanText }]);
     } catch (error) {
       setMessages(prev => [...prev, { role: "agent", text: "⚠️ WeBank Agent could not be reached." }]);
     } finally {
@@ -100,9 +131,11 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   };
 
   useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
+    // Wait for framer-motion animation to finish before scrolling
+    const timeout = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 300);
+    return () => clearTimeout(timeout);
   }, [messages]);
 
   return (
@@ -135,16 +168,17 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                   animate={{ opacity: 1, y: 0 }}
                   className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                 >
-                  <div className={`max-w-[85%] rounded-2xl p-4 ${
+                  <div className={`max-w-[85%] rounded-2xl p-4 prose prose-invert prose-sm ${
                     msg.role === "user" 
                       ? "bg-zinc-800 border border-zinc-700 text-zinc-50 rounded-br-none" 
                       : "bg-zinc-950/60 border border-zinc-900 text-zinc-300 rounded-bl-none shadow-lg"
                   }`}>
-                    <p className="text-sm leading-relaxed font-light">{msg.text}</p>
+                    <ReactMarkdown>{msg.text}</ReactMarkdown>
                   </div>
                 </motion.div>
               ))}
             </AnimatePresence>
+            <div ref={messagesEndRef} className="h-1" />
           </div>
 
           {/* Input Area */}
@@ -174,18 +208,80 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         </div>
 
         {/* ── RIGHT PANEL: Dynamic Wealth Cockpit ── */}
-        <div className="h-full overflow-y-auto p-6 lg:p-8 space-y-6 bg-black">
+        <div className="h-full overflow-y-auto p-6 lg:p-8 bg-black flex flex-col">
           
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 shrink-0 gap-4">
             <h2 className="text-2xl font-light tracking-tight text-white">Your Wealth Cockpit</h2>
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
-              <CheckCircle2 className="w-3.5 h-3.5" /> AUDITED
+            
+            <div className="flex items-center gap-3">
+              {/* Initial Capital Input */}
+              <div className="flex items-center gap-2 bg-zinc-950/60 border border-zinc-900 rounded-xl px-3 py-2 shadow-lg">
+                <span className="text-zinc-500 text-xs font-mono uppercase">Capital</span>
+                <div className="flex items-center">
+                  <span className="text-zinc-400 text-sm">$</span>
+                  <input 
+                    type="number" 
+                    value={portfolioValue}
+                    onChange={(e) => onUpdatePortfolioValue(Number(e.target.value))}
+                    className="bg-transparent text-white text-sm font-mono w-24 focus:outline-none pl-1"
+                    min="1000"
+                    step="1000"
+                  />
+                </div>
+              </div>
+
+              {/* Settings Dropdown for Asset Management */}
+              <div className="relative">
+                <button 
+                  onClick={() => setIsAssetsModalOpen(!isAssetsModalOpen)}
+                  className={`p-2.5 rounded-xl border transition-colors shadow-lg ${isAssetsModalOpen ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-zinc-950/60 border-zinc-900 hover:bg-zinc-900 text-zinc-400'}`}
+                >
+                  <Settings2 className="w-4 h-4" />
+                </button>
+                
+                <AnimatePresence>
+                  {isAssetsModalOpen && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute right-0 top-12 w-64 bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden z-50"
+                    >
+                      <div className="p-3 border-b border-zinc-900 bg-zinc-900/50 text-xs font-mono text-zinc-400 uppercase tracking-widest flex justify-between items-center">
+                        <span>Asset Universe</span>
+                        <span className="text-zinc-600">{Object.keys(ASSET_COLORS).length - excludedAssets.length}/{Object.keys(ASSET_COLORS).length}</span>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto p-2">
+                        {Object.keys(ASSET_COLORS).map(assetId => {
+                          const isExcluded = excludedAssets.includes(assetId);
+                          return (
+                            <label key={assetId} className="flex items-center justify-between p-2 hover:bg-zinc-900 rounded-lg cursor-pointer group transition-colors">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: ASSET_COLORS[assetId] }} />
+                                <span className={`text-xs font-mono ${isExcluded ? 'text-zinc-600 line-through' : 'text-zinc-300 group-hover:text-white'}`}>
+                                  {assetId}
+                                </span>
+                              </div>
+                              <input 
+                                type="checkbox" 
+                                checked={!isExcluded}
+                                onChange={() => onToggleAsset(assetId)}
+                                className="w-3 h-3 accent-emerald-500 rounded-sm"
+                              />
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex-1 min-h-0 flex flex-col gap-4">
             {/* CARD 1: RISK & SUITABILITY */}
-            <div className="col-span-1 md:col-span-2 rounded-2xl bg-zinc-950/60 border border-zinc-900 p-5 shadow-xl relative overflow-hidden">
+            <div className="shrink-0 rounded-2xl bg-zinc-950/60 border border-zinc-900 p-5 shadow-xl relative overflow-hidden backdrop-blur-xl">
               <div className="flex items-center gap-2 mb-4">
                 <ShieldCheck className="w-4 h-4 text-zinc-500" />
                 <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Risk & Suitability Sentinel</span>
@@ -214,11 +310,15 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               </div>
             </div>
 
-            {/* CARD 2: DYNAMIC ASSET ALLOCATION */}
-            <div className="rounded-2xl bg-zinc-950/60 border border-zinc-900 p-5 shadow-xl flex flex-col">
-              <div className="flex items-center gap-2 mb-2">
-                <PieChart className="w-4 h-4 text-zinc-500" />
-                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Asset Allocation</span>
+            {/* LOWER SECTION: CARDS 2 & 3 */}
+            <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* CARD 2: DYNAMIC ASSET ALLOCATION */}
+              <div className="rounded-2xl bg-zinc-950/60 border border-zinc-900 p-5 shadow-xl flex flex-col backdrop-blur-xl">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <PieChart className="w-4 h-4 text-zinc-500" />
+                  <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Asset Allocation</span>
+                </div>
               </div>
               <div className="flex-1 min-h-[200px] -ml-4">
                 <ResponsiveContainer width="100%" height="100%">
@@ -256,7 +356,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             </div>
 
             {/* CARD 3: MONTE CARLO WEALTH PROJECTION */}
-            <div className="rounded-2xl bg-zinc-950/60 border border-zinc-900 p-5 shadow-xl flex flex-col">
+            <div className="rounded-2xl bg-zinc-950/60 border border-zinc-900 p-5 shadow-xl flex flex-col backdrop-blur-xl">
               <div className="flex items-center gap-2 mb-2">
                 <Activity className="w-4 h-4 text-zinc-500" />
                 <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">5-Year Projection</span>
@@ -288,27 +388,18 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 <div className="text-white">${monteCarlo.terminal_p50.toLocaleString(undefined, {maximumFractionDigits:0})}</div>
               </div>
             </div>
+          </div>
 
-            {/* CARD 4: CRYPTOGRAPHIC AUDIT PROOF */}
-            <div className="col-span-1 md:col-span-2 rounded-2xl bg-zinc-950/60 border border-zinc-900 p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <Fingerprint className="w-4 h-4 text-zinc-500" />
-                  <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Audit Hash</span>
-                </div>
-                <div className="text-xs font-mono text-zinc-400 mt-1 break-all">
-                  0x{Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join('')}
-                </div>
-              </div>
-              <button 
-                type="button"
-                onClick={() => handleQuickAction("Execute a sandbox rebalance order for my current portfolio allocation.")}
-                disabled={isLoading}
-                className="whitespace-nowrap px-6 py-3 flex items-center justify-center gap-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-zinc-200 text-sm font-medium transition-colors shadow-lg disabled:opacity-50"
-              >
-                <TrendingUp className="w-4 h-4" /> Execute Sandbox Order
-              </button>
-            </div>
+          {/* Execute Sandbox Button Sticky Footer */}
+          <div className="shrink-0 mt-6 pt-4 border-t border-zinc-900">
+            <button 
+              type="button"
+              onClick={() => handleQuickAction("Execute a sandbox rebalance order for my current portfolio allocation.")}
+              disabled={isLoading}
+              className="w-full py-4 flex items-center justify-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 font-medium transition-colors shadow-lg disabled:opacity-50"
+            >
+              <TrendingUp className="w-5 h-5" /> Execute Sandbox Order
+            </button>
           </div>
         </div>
 
