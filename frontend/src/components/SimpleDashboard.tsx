@@ -204,6 +204,11 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-emerald-400" /> : <Send className="w-4 h-4" />}
               </button>
             </form>
+            <div className="mt-4 text-[9px] text-zinc-600/80 text-center font-mono leading-relaxed">
+              <span className="text-zinc-500">STRICTLY CONFIDENTIAL &middot; CSRC COMPLIANCE ACTIVE</span><br/>
+              Simulated sandbox environment for demonstration purposes only.<br/>
+              Created by: Adriel Kourlate, Yves Abdallah, Kushi, Aadithyan, Zixuan
+            </div>
           </div>
         </div>
 
@@ -401,9 +406,11 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               <TrendingUp className="w-5 h-5" /> Execute Sandbox Order
             </button>
           </div>
+          </div>
         </div>
-
       </div>
     </div>
   );
 };
+
+export default SimpleDashboard;
