@@ -7,7 +7,7 @@ interface LandingPageProps {
   onLaunch: () => void;
 }
 
-const fadeUp = {
+const fadeUp: any = {
   hidden: { opacity: 0, y: 30 },
   visible: { 
     opacity: 1, 
@@ -24,57 +24,63 @@ const stagger = {
   }
 };
 
-// Team Data (placeholders)
+// Team Data
 const teamMembers = [
-  { name: "John Doe", role: "Quantitative Analyst", bio: "Algorithmic pricing and stochastic modeling.", colSpan: "md:col-span-2 md:row-span-2" },
-  { name: "Jane Smith", role: "Compliance Officer", bio: "CSRC alignment and regulatory auditing.", colSpan: "md:col-span-1 md:row-span-1" },
-  { name: "Alice Lee", role: "AI Engineer", bio: "LLM integration and prompt engineering.", colSpan: "md:col-span-1 md:row-span-1" },
-  { name: "Bob Chen", role: "Frontend Developer", bio: "Interactive UI/UX and data visualization.", colSpan: "md:col-span-1 md:row-span-1" },
-  { name: "David Wong", role: "Product Manager", bio: "User journeys and business strategy.", colSpan: "md:col-span-1 md:row-span-1" }
+  { name: "Adriel Kourlate", role: "Quantitative Analyst", bio: "Algorithmic pricing and stochastic modeling.", colSpan: "md:col-span-2 md:row-span-2" },
+  { name: "Yves Abdallah", role: "Compliance Officer", bio: "CSRC alignment and regulatory auditing.", colSpan: "md:col-span-1 md:row-span-1" },
+  { name: "Kushi", role: "AI Engineer", bio: "LLM integration and prompt engineering.", colSpan: "md:col-span-1 md:row-span-1" },
+  { name: "Aadithyan", role: "Frontend Developer", bio: "Interactive UI/UX and data visualization.", colSpan: "md:col-span-1 md:row-span-1" },
+  { name: "Zixuan", role: "Product Manager", bio: "User journeys and business strategy.", colSpan: "md:col-span-1 md:row-span-1" }
 ];
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
+  const scrollToSection = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
+    e.preventDefault();
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-zinc-800 selection:text-white relative overflow-hidden">
-      {/* Dynamic Animated Background */}
+      {/* Dynamic Animated Background (Optimized) */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         <motion.div
           animate={{
-            scale: [1, 1.2, 1],
             opacity: [0.1, 0.2, 0.1],
-            rotate: [0, 90, 0]
           }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute -top-[50%] -left-[20%] w-[150%] h-[150%] rounded-full opacity-20 blur-[120px]"
+          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+          className="absolute -top-[50%] -left-[20%] w-[150%] h-[150%] rounded-full opacity-20"
           style={{
-            background: "radial-gradient(circle, rgba(63,63,70,0.4) 0%, rgba(0,0,0,0) 60%)"
+            background: "radial-gradient(circle, rgba(63,63,70,0.3) 0%, rgba(0,0,0,0) 50%)"
           }}
         />
         <motion.div
           animate={{
-            scale: [1, 1.3, 1],
             opacity: [0.05, 0.15, 0.05],
-            x: [0, 100, 0]
           }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[20%] right-[10%] w-[80%] h-[80%] rounded-full opacity-20 blur-[100px]"
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[20%] right-[10%] w-[80%] h-[80%] rounded-full opacity-20"
           style={{
-            background: "radial-gradient(circle, rgba(161,161,170,0.2) 0%, rgba(0,0,0,0) 60%)"
+            background: "radial-gradient(circle, rgba(161,161,170,0.15) 0%, rgba(0,0,0,0) 50%)"
           }}
         />
       </div>
 
       {/* ── Navigation ── */}
       <nav className="fixed top-0 inset-x-0 z-50 px-6 py-6 md:px-12 md:py-8 flex items-center justify-between pointer-events-none">
-        <div className="font-semibold text-lg tracking-tight pointer-events-auto flex items-center gap-2">
+        <button 
+          onClick={(e) => scrollToSection(e, 'hackathon')}
+          className="font-semibold text-lg tracking-tight pointer-events-auto flex items-center gap-2 hover:text-zinc-300 transition-colors"
+        >
           WeAdvisory
           <span className="hidden md:inline-block px-2 py-0.5 ml-2 rounded text-[10px] uppercase font-mono tracking-widest bg-zinc-900 border border-zinc-800 text-zinc-400">
             Shenzhen Univ × WeBank
           </span>
-        </div>
+        </button>
         <div className="flex gap-6 items-center pointer-events-auto">
-          <a href="#team" className="hidden md:block text-xs font-mono text-zinc-500 hover:text-white uppercase tracking-widest transition-colors">Team</a>
-          <a href="#" className="hidden md:block text-xs font-mono text-zinc-500 hover:text-white uppercase tracking-widest transition-colors">Hackathon</a>
+          <button onClick={(e) => scrollToSection(e, 'team')} className="hidden md:block text-xs font-mono text-zinc-500 hover:text-white uppercase tracking-widest transition-colors">Team</button>
           <button
             onClick={onLaunch}
             className="text-sm font-medium hover:text-zinc-300 transition-colors"
@@ -85,7 +91,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
       </nav>
 
       {/* ── Hero ── */}
-      <section className="min-h-screen flex flex-col md:flex-row items-center justify-between px-6 md:px-12 pt-24 pb-12 relative z-10 gap-12">
+      <section id="hackathon" className="min-h-screen flex flex-col md:flex-row items-center justify-between px-6 md:px-12 pt-24 pb-12 relative z-10 gap-12">
         <motion.div
           initial="hidden"
           animate="visible"
@@ -93,8 +99,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
           className="max-w-3xl w-full text-center md:text-left flex flex-col md:items-start items-center"
         >
           <motion.h1 variants={fadeUp} className="text-5xl md:text-7xl lg:text-[96px] font-light tracking-tighter leading-[1.05] mb-6">
-            <DecryptedText text="Advisory." animateOn="view" sequential={true} speed={50} maxIterations={10} revealDirection="start" /> <br />
-            <DecryptedText text="Redefined." animateOn="view" sequential={true} speed={50} maxIterations={10} revealDirection="start" />
+            <DecryptedText text="Advisory." animateOn="view" sequential={true} speed={80} maxIterations={4} revealDirection="start" /> <br />
+            <DecryptedText text="Redefined." animateOn="view" sequential={true} speed={80} maxIterations={4} revealDirection="start" />
           </motion.h1>
           <motion.p variants={fadeUp} className="text-lg md:text-xl text-zinc-400 font-light max-w-2xl mb-12 leading-relaxed">
             The institutional wealth cockpit built for the Shenzhen University & WeBank Hackathon. Real-time Markowitz optimization and strict CSRC compliance.

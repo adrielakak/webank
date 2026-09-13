@@ -68,7 +68,7 @@ export default function DecryptedText({
 
   const computeOrder = useCallback(
     (len: number) => {
-      const order = [];
+      const order: number[] = [];
       if (len <= 0) return order;
       if (revealDirection === 'start') {
         for (let i = 0; i < len; i++) order.push(i);
@@ -370,7 +370,7 @@ export default function DecryptedText({
       <span style={styles.srOnly}>{displayText}</span>
 
       <span aria-hidden="true">
-        {displayText.split('').map((char, index) => {
+        {displayText.split('').map((char: string, index: number) => {
           const isRevealedOrDone = revealedIndices.has(index) || (!isAnimating && isDecrypted);
 
           return (

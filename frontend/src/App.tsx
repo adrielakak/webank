@@ -43,7 +43,7 @@ export function App() {
 
   const [clientName] = useState("Sarah Jenkins");
   const [currentTier, setCurrentTier] = useState<InvestorRiskLevel>("C3");
-  const [portfolioValue] = useState(50000);
+  const [portfolioValue, setPortfolioValue] = useState(50000);
   const [isRebalancing, setIsRebalancing] = useState(false);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [auditRecords, setAuditRecords] = useState<ComplianceAuditRecord[]>([]);
@@ -181,12 +181,26 @@ export function App() {
       
       const responseText = await sendMessageToAgent(text, history.slice(0, -1), currentTier); // exclude current message
       
+      let cleanText = responseText;
+      const tierMatch = responseText.match(/\[ACTION:\s*SET_TIER,\s*(C[1-5])\]/);
+      if (tierMatch && tierMatch[1]) {
+        handleSelectTier(tierMatch[1] as InvestorRiskLevel, excludedAssets, portfolioValue);
+        cleanText = cleanText.replace(tierMatch[0], "");
+      }
+      
+      const capitalMatch = responseText.match(/\[ACTION:\s*SET_CAPITAL,\s*(\d+)\]/);
+      if (capitalMatch && capitalMatch[1]) {
+        handleUpdatePortfolioValue(Number(capitalMatch[1]));
+        cleanText = cleanText.replace(capitalMatch[0], "");
+      }
+      cleanText = cleanText.trim();
+      
       setMessages((prev) => [
         ...prev,
         {
           id: `bot_${Date.now()}`,
           role: "assistant",
-          content: responseText,
+          content: cleanText,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
@@ -336,6 +350,10 @@ export function App() {
               onExecuteRebalance={handleExecuteRebalance}
               isRebalancing={isRebalancing}
               onOpenAudit={() => setIsAuditModalOpen(true)}
+              portfolioValue={portfolioValue}
+              excludedAssets={excludedAssets}
+              onUpdatePortfolioValue={handleUpdatePortfolioValue}
+              onToggleAsset={handleToggleAsset}
             />
           </div>
         </motion.div>

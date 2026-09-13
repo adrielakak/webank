@@ -227,9 +227,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             <Send className="w-4 h-4 ml-0.5" />
           </motion.button>
         </div>
-        <p className="text-[9px] font-mono mt-2 text-center text-zinc-600 uppercase tracking-widest">
-          Powered by WeAdvisory Multi-Agent System
-        </p>
+        <div className="mt-4 text-[9px] text-zinc-600/80 text-center font-mono leading-relaxed">
+          <span className="text-zinc-500">STRICTLY CONFIDENTIAL &middot; CSRC COMPLIANCE ACTIVE</span><br/>
+          Simulated sandbox environment for demonstration purposes only.<br/>
+          Created by: Adriel Kourlate, Yves Abdallah, Kushi, Aadithyan, Zixuan
+        </div>
       </div>
     </div>
   );

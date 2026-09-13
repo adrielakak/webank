@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldCheck, PieChart, Activity, Send, CheckCircle2, TrendingUp, Loader2, Settings2 } from "lucide-react";
 import { PortfolioAllocation, MonteCarloPath, InvestorRiskLevel } from "../types";
@@ -20,7 +20,7 @@ interface SimpleDashboardProps {
 
 // Recharts colors exactly matching the Expert CockpitPanel
 const ASSET_COLORS: Record<string, string> = {
-  "CASH-USD":        "#3f3f46",
+  "CASH-USD":        "#0ea5e9",
   "CN-CGB-10Y":      "#52525b",
   "US-TREAS-7Y":     "#71717a",
   "CORP-IG-BOND":    "#a1a1aa",
@@ -52,9 +52,11 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   onSelectTier,
 }) => {
   // Format data for Recharts Pie
-  const activeWeights = Object.entries(allocation.weights)
-    .filter(([, w]) => w > 0.001)
-    .map(([name, value]) => ({ name, value: value * 100 }));
+  const activeWeights = useMemo(() => {
+    return Object.entries(allocation.weights)
+      .filter(([name, val]) => val > 0 && !excludedAssets.includes(name))
+      .map(([name, value]) => ({ name, value: value * 100 }));
+  }, [allocation.weights, excludedAssets]);
 
   // Format data for Recharts Area
   const chartData = monteCarlo.months.map((m, i) => ({
@@ -138,12 +140,15 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
     return () => clearTimeout(timeout);
   }, [messages]);
 
+  const minP10 = Math.min(...monteCarlo.p10_pessimistic);
+  const maxDrawdown = Math.min(0, (minP10 / portfolioValue) * 100 - 100);
+
   return (
     <div className="flex-1 w-full h-full bg-black text-white overflow-hidden">
-      <div className="h-full grid grid-cols-1 lg:grid-cols-2">
+      <div className="h-full grid grid-cols-1 lg:grid-cols-2 w-full">
         
         {/* ── LEFT PANEL: Conversational Advisor ── */}
-        <div className="h-full border-r border-zinc-900 flex flex-col bg-black relative">
+        <div className="h-full border-r border-zinc-900 flex flex-col bg-black relative min-h-0">
           
           {/* Header */}
           <div className="p-4 border-b border-zinc-900 flex items-center justify-between sticky top-0 z-10 bg-black">
@@ -159,7 +164,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           </div>
 
           {/* Chat Feed */}
-          <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth bg-black">
+          <div ref={chatContainerRef} className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6 scroll-smooth bg-black">
             <AnimatePresence initial={false}>
               {messages.map((msg, i) => (
                 <motion.div
@@ -183,10 +188,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
           {/* Input Area */}
           <div className="p-4 bg-black border-t border-zinc-900">
-            <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
-              <button type="button" onClick={() => handleQuickAction("Simulate a +100bps interest rate shock on my bond holdings. What would happen to my portfolio?")} disabled={isLoading} className="whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-light border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 transition-colors text-zinc-300 disabled:opacity-50">Simulate Rate Shock +1%</button>
-              <button type="button" onClick={() => handleQuickAction("I want to increase my growth exposure. Can you optimize my portfolio for a C4 growth profile?")} disabled={isLoading} className="whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-light border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 transition-colors text-zinc-300 disabled:opacity-50">Increase Growth Exposure</button>
-            </div>
+
             <form onSubmit={handleSendMessage} className="relative flex items-center">
               <input
                 type="text"
@@ -213,7 +215,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         </div>
 
         {/* ── RIGHT PANEL: Dynamic Wealth Cockpit ── */}
-        <div className="h-full overflow-y-auto p-6 lg:p-8 bg-black flex flex-col">
+        <div className="h-full overflow-y-auto p-6 lg:p-8 bg-black flex flex-col min-h-0">
           
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 shrink-0 gap-4">
             <h2 className="text-2xl font-light tracking-tight text-white">Your Wealth Cockpit</h2>
@@ -298,7 +300,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 </div>
                 <div>
                   <div className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest mb-1">Assigned Tier</div>
-                  <div className="text-xl text-white font-medium" style={{ color: TIER_COLORS[currentTier] }}>{currentTier} - {allocation.client_tier}</div>
+                  <div className="text-xl text-white font-medium" style={{ color: TIER_COLORS[currentTier] }}>{allocation.client_tier.replace('_', ' ')}</div>
                 </div>
                 <div>
                   <div className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest mb-1">Equity Ceiling</div>
@@ -306,7 +308,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 </div>
                 <div>
                   <div className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest mb-1">Max 1Y Drawdown</div>
-                  <div className="text-xl text-emerald-400 font-mono font-light">{(monteCarlo.terminal_p10 / portfolioValue * 100 - 100).toFixed(1)}%</div>
+                  <div className="text-xl text-emerald-400 font-mono font-light">{maxDrawdown.toFixed(1)}%</div>
                 </div>
               </div>
               <div className="mt-4 pt-3 border-t border-zinc-900 flex items-center gap-2 text-xs text-emerald-400 font-mono">
@@ -316,7 +318,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             </div>
 
             {/* LOWER SECTION: CARDS 2 & 3 */}
-            <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* CARD 2: DYNAMIC ASSET ALLOCATION */}
               <div className="rounded-2xl bg-zinc-950/60 border border-zinc-900 p-5 shadow-xl flex flex-col backdrop-blur-xl">
               <div className="flex items-center justify-between mb-2">
@@ -338,20 +340,20 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                       dataKey="value"
                       stroke="none"
                     >
-                      {activeWeights.map((entry, index) => (
+                      {activeWeights.map((entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={ASSET_COLORS[entry.name] || "#52525b"} />
                       ))}
                     </Pie>
                     <RechartsTooltip 
                       contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '8px', fontSize: '12px', fontFamily: 'monospace' }}
                       itemStyle={{ color: '#e4e4e7' }}
-                      formatter={(value: number) => [`${value.toFixed(1)}%`, 'Weight']}
+                      formatter={(value: any) => [`${Number(value).toFixed(1)}%`, 'Weight']}
                     />
                   </RechartsPieChart>
                 </ResponsiveContainer>
               </div>
               <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                {activeWeights.slice(0, 4).map((asset) => (
+                {activeWeights.slice(0, 4).map((asset: any) => (
                   <div key={asset.name} className="flex items-center gap-1.5 text-[9px] font-mono text-zinc-400 truncate">
                     <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: ASSET_COLORS[asset.name] }} />
                     <span className="truncate">{asset.name}</span>
@@ -380,7 +382,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                     <YAxis stroke="rgba(255,255,255,0.2)" fontSize={10} fontFamily="monospace" tickLine={false} axisLine={false} tickFormatter={(val) => `$${val/1000}k`} />
                     <RechartsTooltip 
                       contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace' }}
-                      formatter={(value: number) => [`$${value.toLocaleString(undefined, {maximumFractionDigits:0})}`, '']}
+                      formatter={(value: any) => [`$${Number(value).toLocaleString(undefined, {maximumFractionDigits:0})}`, '']}
                     />
                     <Area type="monotone" dataKey="P90" stroke="#22c55e" strokeWidth={1} strokeDasharray="3 3" fill="none" />
                     <Area type="monotone" dataKey="P10" stroke="#ef4444" strokeWidth={1} strokeDasharray="3 3" fill="none" />
@@ -392,6 +394,38 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 <div className="text-zinc-500 uppercase tracking-widest">P50 Expected</div>
                 <div className="text-white">${monteCarlo.terminal_p50.toLocaleString(undefined, {maximumFractionDigits:0})}</div>
               </div>
+            </div>
+          </div>
+
+          {/* AI NEXT BEST ACTIONS (Fills empty space) */}
+          <div className="mt-4 rounded-2xl bg-zinc-950/60 border border-zinc-900 p-5 shadow-xl flex flex-col backdrop-blur-xl">
+            <div className="flex items-center gap-2 mb-3">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Next Best Actions</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <button 
+                onClick={() => handleQuickAction("Simulate a +100bps interest rate shock on my bond holdings. What would happen to my portfolio?")}
+                disabled={isLoading}
+                className="text-left p-3 rounded-xl bg-zinc-900/50 hover:bg-zinc-800 border border-zinc-800 transition-colors flex items-center justify-between group disabled:opacity-50"
+              >
+                <div>
+                  <div className="text-xs font-semibold text-zinc-200">Stress Test Rates</div>
+                  <div className="text-[10px] text-zinc-500 mt-0.5">Simulate +100bps shock</div>
+                </div>
+                <Activity className="w-4 h-4 text-zinc-600 group-hover:text-emerald-400 transition-colors" />
+              </button>
+              <button 
+                onClick={() => handleQuickAction("I want to increase my growth exposure. Can you optimize my portfolio for a C4 growth profile?")}
+                disabled={isLoading}
+                className="text-left p-3 rounded-xl bg-zinc-900/50 hover:bg-zinc-800 border border-zinc-800 transition-colors flex items-center justify-between group disabled:opacity-50"
+              >
+                <div>
+                  <div className="text-xs font-semibold text-zinc-200">Optimize Growth</div>
+                  <div className="text-[10px] text-zinc-500 mt-0.5">Shift to C4 profile</div>
+                </div>
+                <TrendingUp className="w-4 h-4 text-zinc-600 group-hover:text-emerald-400 transition-colors" />
+              </button>
             </div>
           </div>
 

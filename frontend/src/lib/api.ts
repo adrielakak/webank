@@ -132,7 +132,7 @@ export async function optimizePortfolio(clientTier: InvestorRiskLevel, excludedA
     },
   };
 
-  return fallbacks[tier];
+  return fallbacks[clientTier];
 }
 
 export async function simulateMonteCarlo(

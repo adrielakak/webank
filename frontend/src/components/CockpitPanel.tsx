@@ -10,10 +10,14 @@ interface CockpitPanelProps {
   onExecuteRebalance: () => Promise<void>;
   isRebalancing: boolean;
   onOpenAudit: () => void;
+  portfolioValue?: number;
+  excludedAssets?: string[];
+  onUpdatePortfolioValue?: (val: number) => void;
+  onToggleAsset?: (asset: string) => void;
 }
 
 const ASSET_COLORS: Record<string, string> = {
-  "CASH-USD":        "#3f3f46",
+  "CASH-USD":        "#0ea5e9",
   "CN-CGB-10Y":      "#52525b",
   "US-TREAS-7Y":     "#71717a",
   "CORP-IG-BOND":    "#a1a1aa",
@@ -49,7 +53,7 @@ const stagger = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } },
 };
-const fadeSlide = {
+const fadeSlide: any = {
   hidden: { opacity: 0, y: 12 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
 };
@@ -285,8 +289,10 @@ function MetricRow({ label, value, sub }: { label: string; value: string; sub?: 
    ═══════════════════════════════════════════════════════════════════ */
 export const CockpitPanel: React.FC<CockpitPanelProps> = ({
   allocation, monteCarlo, auditRecord, onExecuteRebalance, isRebalancing, onOpenAudit,
+  portfolioValue = 50000, excludedAssets = [], onUpdatePortfolioValue, onToggleAsset
 }) => {
   const [hoveredAsset, setHoveredAsset] = useState<string | null>(null);
+  const [isAssetsModalOpen, setIsAssetsModalOpen] = useState(false);
 
   const activeWeights = Object.entries(allocation.weights)
     .filter(([, w]) => w > 0.001)
@@ -295,10 +301,12 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
   const isGain = allocation.expected_annual_return >= 0;
   const chartColor = isGain ? "#ef4444" : "#22c55e";
 
-  const aumDisplay = useAnimatedNumber(50000, 0, 0.8);
+  const aumDisplay = useAnimatedNumber(portfolioValue, 0, 0.8);
   const retDisplay = useAnimatedNumber(allocation.expected_annual_return * 100, 2, 1.0);
   const sharpeDisplay = useAnimatedNumber(allocation.sharpe_ratio, 3, 0.9);
   const volDisplay = useAnimatedNumber(allocation.expected_annual_volatility * 100, 2, 0.9);
+  const minP10 = Math.min(...monteCarlo.p10_pessimistic);
+  const maxDrawdown = Math.min(0, (minP10 / (portfolioValue || 50000)) * 100 - 100);
 
   return (
     <motion.div
@@ -307,9 +315,75 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
       initial="hidden"
       animate="visible"
     >
-      {/* ── 1. Hero AUM ── */}
-      <motion.div variants={fadeSlide} className="flex flex-col items-center text-center gap-1 pt-2">
-        <span className="font-mono text-zinc-600 text-[10px] uppercase tracking-widest">
+      {/* ── 1. Hero AUM & Controls ── */}
+      <motion.div variants={fadeSlide} className="flex flex-col items-center text-center gap-1 pt-2 relative">
+        <div className="flex items-center gap-3 absolute top-0 right-0">
+          {/* Initial Capital Input */}
+          <div className="flex items-center gap-2 bg-zinc-950/60 border border-zinc-900 rounded-xl px-3 py-2 shadow-lg">
+            <span className="text-zinc-500 text-xs font-mono uppercase">Capital</span>
+            <div className="flex items-center">
+              <span className="text-zinc-400 text-sm">$</span>
+              <input
+                type="number"
+                value={portfolioValue}
+                onChange={(e) => onUpdatePortfolioValue?.(Number(e.target.value))}
+                className="w-20 bg-transparent border-none outline-none text-white text-sm tabular-nums font-mono focus:ring-0 p-0 ml-1"
+                min="1000"
+                step="1000"
+              />
+            </div>
+          </div>
+
+          {/* Asset Universe Button */}
+          <div className="relative">
+            <button 
+              onClick={() => setIsAssetsModalOpen(!isAssetsModalOpen)}
+              className="flex items-center gap-2 bg-zinc-950/60 border border-zinc-900 hover:bg-zinc-900 rounded-xl px-3 py-2 shadow-lg transition-colors"
+            >
+              <PieChart className="w-4 h-4 text-emerald-400" />
+              <span className="text-zinc-300 text-xs font-mono uppercase">Assets</span>
+            </button>
+            
+            <AnimatePresence>
+              {isAssetsModalOpen && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute right-0 top-12 w-64 bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden z-50 text-left"
+                >
+                  <div className="p-3 border-b border-zinc-900 bg-zinc-900/50 text-xs font-mono text-zinc-400 uppercase tracking-widest flex justify-between items-center">
+                    <span>Asset Universe</span>
+                    <span className="text-zinc-600">{Object.keys(ASSET_COLORS).length - excludedAssets.length}/{Object.keys(ASSET_COLORS).length}</span>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto p-2">
+                    {Object.keys(ASSET_COLORS).map(assetId => {
+                      const isExcluded = excludedAssets.includes(assetId);
+                      return (
+                        <label key={assetId} className="flex items-center justify-between p-2 hover:bg-zinc-900 rounded-lg cursor-pointer group transition-colors">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: ASSET_COLORS[assetId] }} />
+                            <span className={`text-xs font-mono ${isExcluded ? 'text-zinc-600 line-through' : 'text-zinc-300 group-hover:text-white'}`}>
+                              {assetId}
+                            </span>
+                          </div>
+                          <input 
+                            type="checkbox" 
+                            checked={!isExcluded}
+                            onChange={() => onToggleAsset?.(assetId)}
+                            className="w-3 h-3 accent-emerald-500 rounded-sm"
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        <span className="font-mono text-zinc-600 text-[10px] uppercase tracking-widest mt-12">
           Sandbox · Markowitz Optimal Portfolio
         </span>
         <motion.h1
@@ -367,7 +441,7 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
             <p className="text-xs text-zinc-500 font-light mt-1 leading-relaxed">{allocation.compliance_message}</p>
           </div>
 
-          <MetricRow label="Risk Tier"   value={allocation.composite_risk_tier} />
+          <MetricRow label="Risk Tier"   value={allocation.client_tier.replace('_', ' ')} />
           <MetricRow label="Sharpe"      value={sharpeDisplay.toFixed(3)} sub="Risk-adjusted" />
           <MetricRow label="Volatility"  value={`${volDisplay.toFixed(2)}%`} sub="Annual σ" />
           <MetricRow label="P(loss) 5Y"  value={`${(monteCarlo.probability_of_loss * 100).toFixed(1)}%`} />

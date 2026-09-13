@@ -126,8 +126,8 @@ export const RiskProfilingWizard: React.FC<RiskProfilingWizardProps> = ({ onComp
         <div className="w-full h-1 bg-zinc-900 rounded-full overflow-hidden">
           <motion.div 
             className="h-full bg-white"
-            initial={{ width: `${(step / QUESTIONS.length) * 100}%` }}
-            animate={{ width: `${((step + 1) / QUESTIONS.length) * 100}%` }}
+            initial={{ width: step === 0 ? "0%" : `${((step - 1) / QUESTIONS.length) * 100}%` }}
+            animate={{ width: `${(step / QUESTIONS.length) * 100}%` }}
             transition={{ duration: 0.5 }}
           />
         </div>
