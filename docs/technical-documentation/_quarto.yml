@@ -1,0 +1,89 @@
+project:
+  type: book
+  output-dir: _output
+
+book:
+  title: "Adastra : Technical Documentation"
+  subtitle: "FinTechathon 2026 · Shenzhen International FinTech Competition"
+  author: "Team Adastra (Adriel Kourlate, Dong Zixuan, Aadithyan Sajith Kumar, Khushi Mistry) · Faculty Advisor: Prof. Halis Sak"
+  date: "October 2026"
+  chapters:
+    - index.qmd
+    - architecture.qmd
+    - algorithm.qmd
+    - security.qmd
+
+format:
+  html:
+    theme:
+      dark: darkly
+      light: flatly
+    css: styles.css
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: true
+    code-tools: true
+    highlight-style: github-dark
+    fig-responsive: true
+  pdf:
+    documentclass: scrreprt
+    classoption: ["oneside"]
+    geometry:
+      - top=20mm
+      - bottom=20mm
+      - left=20mm
+      - right=20mm
+    toc: true
+    number-sections: true
+    colorlinks: true
+    include-in-header:
+      text: |
+        \usepackage{fvextra}
+        \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+        \usepackage{microtype}
+        \usepackage[export]{adjustbox}
+        \usepackage{xcolor}
+        \let\oldincludegraphics\includegraphics
+        \renewcommand{\includegraphics}[2][]{%
+          \oldincludegraphics[#1,max width=\linewidth,max height=0.75\textheight,keepaspectratio]{#2}%
+        }
+        \makeatletter
+        \renewcommand{\maketitle}{%
+          \begin{titlepage}
+            \centering
+            \vspace*{2.2cm}
+            
+            {\fontsize{28}{34}\selectfont \bfseries \sffamily ADASTRA\par}
+            \vspace{0.6cm}
+            {\large \sffamily Intelligent Quantitative Risk Management \& Wealth Advisory Cockpit\par}
+            
+            \vspace{1.6cm}
+            {\Large \bfseries Technical Documentation\par}
+            \vspace{0.3cm}
+            {\normalsize \textcolor{darkgray}{System Architecture $\;\cdot\;$ Core Algorithm Description $\;\cdot\;$ Security Design}\par}
+            
+            \vspace{1.5cm}
+            {\color{gray}\rule{0.6\textwidth}{0.8pt}}
+            \vspace{1.5cm}
+            
+            {\large \bfseries FinTechathon 2026\par}
+            \vspace{0.25cm}
+            {\normalsize Shenzhen International FinTech Competition $\;\cdot\;$ WeBank Track\par}
+            
+            \vfill
+            
+            \begin{minipage}{0.85\textwidth}
+              \centering
+              {\normalsize \bfseries Team Adastra}\\[0.25cm]
+              {\small Adriel Kourlate $\;\cdot\;$ Dong Zixuan $\;\cdot\;$ Aadithyan Sajith Kumar $\;\cdot\;$ Khushi Mistry}\\[0.35cm]
+              {\small \textit{Faculty Advisor:} Prof. Halis Sak}\\[0.35cm]
+              {\small \textit{GitHub Repository:} \url{https://github.com/adrielakak/webank}}
+            \end{minipage}
+            
+            \vspace{1.5cm}
+            {\normalsize October 2026\par}
+            \vspace*{1.2cm}
+          \end{titlepage}
+        }
+        \makeatother

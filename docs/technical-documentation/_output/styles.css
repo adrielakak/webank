@@ -1,0 +1,26 @@
+/* Adastra : Quarto Custom Theme */
+:root {
+  --accent: #10b981;
+  --accent-light: #34d399;
+}
+
+.sidebar-title {
+  font-weight: 700 !important;
+  letter-spacing: -0.02em;
+}
+
+.callout-note {
+  border-left-color: var(--accent) !important;
+}
+
+h1, h2, h3 {
+  letter-spacing: -0.01em;
+}
+
+table {
+  font-size: 0.92rem;
+}
+
+code {
+  font-size: 0.88rem;
+}

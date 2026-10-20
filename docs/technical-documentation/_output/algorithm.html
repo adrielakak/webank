@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.36">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>3&nbsp; Core Algorithm Description – Adastra : Technical Documentation</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./security.html" rel="next">
+<link href="./architecture.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dbc92dda8186f57fa2e333fbb71d6a9d.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-dbc92dda8186f57fa2e333fbb71d6a9d.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-bfe73e74dd36a31b85da4ae1f65e8762.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-f4191959987c03280057c9056eb75cda.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-sidebar floating quarto-dark"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = true;
+    const darkModeDefault = authorPrefersDark;
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./algorithm.html"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Core Algorithm Description</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Adastra : Technical Documentation</a> 
+        <div class="sidebar-tools-main">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Adastra : Technical Documentation</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./architecture.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">System Architecture</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./algorithm.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Core Algorithm Description</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./security.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Security Design</span></span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#problem-formulation" id="toc-problem-formulation" class="nav-link active" data-scroll-target="#problem-formulation"><span class="header-section-number">3.1</span> Problem Formulation</a>
+  <ul class="collapse">
+  <li><a href="#why-risk-classification-instead-of-return-prediction" id="toc-why-risk-classification-instead-of-return-prediction" class="nav-link" data-scroll-target="#why-risk-classification-instead-of-return-prediction"><span class="header-section-number">3.1.1</span> Why Risk Classification Instead of Return Prediction?</a></li>
+  </ul></li>
+  <li><a href="#feature-engineering-pipeline" id="toc-feature-engineering-pipeline" class="nav-link" data-scroll-target="#feature-engineering-pipeline"><span class="header-section-number">3.2</span> Feature Engineering Pipeline</a>
+  <ul class="collapse">
+  <li><a href="#orthogonal-news-shocks-didisheim-et-al.-2026" id="toc-orthogonal-news-shocks-didisheim-et-al.-2026" class="nav-link" data-scroll-target="#orthogonal-news-shocks-didisheim-et-al.-2026"><span class="header-section-number">3.2.1</span> 1. Orthogonal News Shocks (Didisheim et al., 2026)</a></li>
+  <li><a href="#behavioral-finance-tk-peer-reward-barberis-et-al.-2016" id="toc-behavioral-finance-tk-peer-reward-barberis-et-al.-2016" class="nav-link" data-scroll-target="#behavioral-finance-tk-peer-reward-barberis-et-al.-2016"><span class="header-section-number">3.2.2</span> 2. Behavioral Finance: TK Peer Reward (Barberis et al., 2016)</a></li>
+  <li><a href="#non-linear-panic-signal" id="toc-non-linear-panic-signal" class="nav-link" data-scroll-target="#non-linear-panic-signal"><span class="header-section-number">3.2.3</span> 3. Non-Linear Panic Signal</a></li>
+  <li><a href="#complete-feature-set" id="toc-complete-feature-set" class="nav-link" data-scroll-target="#complete-feature-set"><span class="header-section-number">3.2.4</span> 4. Complete Feature Set</a></li>
+  </ul></li>
+  <li><a href="#model-architecture" id="toc-model-architecture" class="nav-link" data-scroll-target="#model-architecture"><span class="header-section-number">3.3</span> Model Architecture</a>
+  <ul class="collapse">
+  <li><a href="#lightgbm-multiclass-classifier" id="toc-lightgbm-multiclass-classifier" class="nav-link" data-scroll-target="#lightgbm-multiclass-classifier"><span class="header-section-number">3.3.1</span> LightGBM Multiclass Classifier</a></li>
+  <li><a href="#hyperparameter-optimization-optuna" id="toc-hyperparameter-optimization-optuna" class="nav-link" data-scroll-target="#hyperparameter-optimization-optuna"><span class="header-section-number">3.3.2</span> Hyperparameter Optimization (Optuna)</a></li>
+  </ul></li>
+  <li><a href="#temporal-validation-protocol" id="toc-temporal-validation-protocol" class="nav-link" data-scroll-target="#temporal-validation-protocol"><span class="header-section-number">3.4</span> Temporal Validation Protocol</a>
+  <ul class="collapse">
+  <li><a href="#why-not-k-fold-cross-validation" id="toc-why-not-k-fold-cross-validation" class="nav-link" data-scroll-target="#why-not-k-fold-cross-validation"><span class="header-section-number">3.4.1</span> Why Not K-Fold Cross-Validation?</a></li>
+  <li><a href="#expanding-walk-forward-validation-2012-2022" id="toc-expanding-walk-forward-validation-2012-2022" class="nav-link" data-scroll-target="#expanding-walk-forward-validation-2012-2022"><span class="header-section-number">3.4.2</span> Expanding Walk-Forward Validation (2012-2022)</a></li>
+  </ul></li>
+  <li><a href="#explainable-ai-treeshap" id="toc-explainable-ai-treeshap" class="nav-link" data-scroll-target="#explainable-ai-treeshap"><span class="header-section-number">3.5</span> Explainable AI (TreeSHAP)</a>
+  <ul class="collapse">
+  <li><a href="#exact-shap-values" id="toc-exact-shap-values" class="nav-link" data-scroll-target="#exact-shap-values"><span class="header-section-number">3.5.1</span> Exact SHAP Values</a></li>
+  <li><a href="#natural-language-synthesis" id="toc-natural-language-synthesis" class="nav-link" data-scroll-target="#natural-language-synthesis"><span class="header-section-number">3.5.2</span> Natural Language Synthesis</a></li>
+  </ul></li>
+  <li><a href="#out-of-sample-backtest-results" id="toc-out-of-sample-backtest-results" class="nav-link" data-scroll-target="#out-of-sample-backtest-results"><span class="header-section-number">3.6</span> 2023 Out-of-Sample Backtest Results</a>
+  <ul class="collapse">
+  <li><a href="#quadrant-strategy" id="toc-quadrant-strategy" class="nav-link" data-scroll-target="#quadrant-strategy"><span class="header-section-number">3.6.1</span> Quadrant Strategy</a></li>
+  <li><a href="#performance-summary-gross-net-of-transaction-costs" id="toc-performance-summary-gross-net-of-transaction-costs" class="nav-link" data-scroll-target="#performance-summary-gross-net-of-transaction-costs"><span class="header-section-number">3.6.2</span> Performance Summary (Gross &amp; Net of Transaction Costs)</a></li>
+  </ul></li>
+  <li><a href="#ai-expected-return-computation" id="toc-ai-expected-return-computation" class="nav-link" data-scroll-target="#ai-expected-return-computation"><span class="header-section-number">3.7</span> AI Expected Return Computation</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Core Algorithm Description</span></h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="problem-formulation" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="problem-formulation"><span class="header-section-number">3.1</span> Problem Formulation</h2>
+<section id="why-risk-classification-instead-of-return-prediction" class="level3" data-number="3.1.1">
+<h3 data-number="3.1.1" class="anchored" data-anchor-id="why-risk-classification-instead-of-return-prediction"><span class="header-section-number">3.1.1</span> Why Risk Classification Instead of Return Prediction?</h3>
+<p>Conventional point-return regression in quantitative finance suffers from near-zero signal-to-noise ratios. Monthly stock returns have standard deviations an order of magnitude larger than their means, making precise point estimates unreliable.</p>
+<p>Our approach reformulates the problem as a <strong>5-class risk classification</strong> aligned directly with CSRC (China Securities Regulatory Commission) investor suitability guidelines:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Class</th>
+<th style="text-align: left;">Label</th>
+<th style="text-align: left;">Monthly Return (<span class="math inline">\(R\)</span>)</th>
+<th style="text-align: left;">CSRC Product Rating</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>0</strong></td>
+<td style="text-align: left;">No Risk (Alpha)</td>
+<td style="text-align: left;"><span class="math inline">\(R \ge +5\%\)</span></td>
+<td style="text-align: left;">R1</td>
+<td style="text-align: left;">Capital expansion regime</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>1</strong></td>
+<td style="text-align: left;">Low Risk</td>
+<td style="text-align: left;"><span class="math inline">\(0\% \le R &lt; +5\%\)</span></td>
+<td style="text-align: left;">R2</td>
+<td style="text-align: left;">Capital preservation</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>2</strong></td>
+<td style="text-align: left;">Medium Risk</td>
+<td style="text-align: left;"><span class="math inline">\(-5\% \le R &lt; 0\%\)</span></td>
+<td style="text-align: left;">R3</td>
+<td style="text-align: left;">Moderate contraction</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>3</strong></td>
+<td style="text-align: left;">High Risk</td>
+<td style="text-align: left;"><span class="math inline">\(-10\% \le R &lt; -5\%\)</span></td>
+<td style="text-align: left;">R4</td>
+<td style="text-align: left;">Elevated vulnerability</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>4</strong></td>
+<td style="text-align: left;">Severe Risk</td>
+<td style="text-align: left;"><span class="math inline">\(R &lt; -10\%\)</span></td>
+<td style="text-align: left;">R5</td>
+<td style="text-align: left;">Asymmetric tail-crash</td>
+</tr>
+</tbody>
+</table>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span>Regulatory Alignment
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>This formulation is not arbitrary : it directly maps to CSRC product risk ratings (R1 through R5), enabling seamless integration with the compliance engine. Each prediction carries immediate regulatory meaning.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="feature-engineering-pipeline" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="feature-engineering-pipeline"><span class="header-section-number">3.2</span> Feature Engineering Pipeline</h2>
+<section id="orthogonal-news-shocks-didisheim-et-al.-2026" class="level3" data-number="3.2.1">
+<h3 data-number="3.2.1" class="anchored" data-anchor-id="orthogonal-news-shocks-didisheim-et-al.-2026"><span class="header-section-number">3.2.1</span> 1. Orthogonal News Shocks (Didisheim et al., 2026)</h3>
+<p>Raw NLP text embeddings heavily duplicate information already present in financial statements. We decompose news signals into:</p>
+<p><span class="math display">\[
+\text{News}_{i,t} = \underbrace{\hat{\text{News}}_{i,t}}_{\text{Expected (priced by fundamentals)}} + \underbrace{\epsilon_{i,t}}_{\text{Orthogonal Surprise (News Shock)}}
+\]</span></p>
+<p><strong>Procedure:</strong></p>
+<ol type="1">
+<li><strong>Embedding Compression</strong>: 1024-dimensional Chinese news transformer embeddings -&gt; 30 principal components via <code>IncrementalPCA</code> (batch size = 5,000 for memory efficiency on 2.1 GB data)</li>
+<li><strong>Ridge Regression</strong>: For each of the top 10 PCA components, regress onto 100 accounting characteristics cross-sectionally</li>
+<li><strong>Residual Extraction</strong>: The orthogonal residual <span class="math inline">\(\epsilon_{i,t}\)</span> represents the pure unexpected news surprise : information that was <em>not</em> already priced into the balance sheet</li>
+</ol>
+<p>This innovation ensures our model captures genuinely new information rather than redundant financial statement echoes.</p>
+</section>
+<section id="behavioral-finance-tk-peer-reward-barberis-et-al.-2016" class="level3" data-number="3.2.2">
+<h3 data-number="3.2.2" class="anchored" data-anchor-id="behavioral-finance-tk-peer-reward-barberis-et-al.-2016"><span class="header-section-number">3.2.2</span> 2. Behavioral Finance: TK Peer Reward (Barberis et al., 2016)</h3>
+<p>China A-shares are dominated by ~200 million retail investors who exhibit strong behavioral biases. We model this via Tversky-Kahneman Prospect Theory:</p>
+<p><strong>S-Shaped Value Function:</strong> <span class="math display">\[
+v(x) = \begin{cases}
+x^{\alpha} &amp; \text{if } x \ge 0 \\
+-\lambda(-x)^{\beta} &amp; \text{if } x &lt; 0
+\end{cases}
+\]</span></p>
+<p>where <span class="math inline">\(\alpha = \beta = 0.88\)</span> and <span class="math inline">\(\lambda \approx 2.25\)</span> (loss aversion coefficient).</p>
+<p><strong>Peer Identification:</strong> For each stock <span class="math inline">\(i\)</span>, we compute the Prospect Theory value function over its trailing 60-month return distribution, then identify the <strong>100 nearest psychological peers</strong> : stocks whose historical return “feel” is most similar to retail investors.</p>
+<p><strong>TK Peer Reward:</strong> The cross-sectional average return of these 100 peers serves as a behavioral momentum signal, capturing sentiment contagion effects across psychologically similar assets.</p>
+</section>
+<section id="non-linear-panic-signal" class="level3" data-number="3.2.3">
+<h3 data-number="3.2.3" class="anchored" data-anchor-id="non-linear-panic-signal"><span class="header-section-number">3.2.3</span> 3. Non-Linear Panic Signal</h3>
+<p>Standard volatility measures treat positive and negative returns symmetrically. We engineer an asymmetric panic indicator:</p>
+<p><span class="math display">\[
+\text{Panic}_{i,t} = \text{ivol}_{i,t} \times \max(0, -\text{ret}_{i,t-1})
+\]</span></p>
+<p>This interaction term captures acute panic selling episodes where high volatility coincides with recent negative momentum : a pattern that precedes severe crash regimes.</p>
+</section>
+<section id="complete-feature-set" class="level3" data-number="3.2.4">
+<h3 data-number="3.2.4" class="anchored" data-anchor-id="complete-feature-set"><span class="header-section-number">3.2.4</span> 4. Complete Feature Set</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Category</th>
+<th style="text-align: left;">Features</th>
+<th style="text-align: left;">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Fundamental Ratios</strong></td>
+<td style="text-align: left;">Book-to-market, gross profit/assets, operating cash flow, debt growth, earnings surprises, etc.</td>
+<td style="text-align: left;">~50</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Momentum &amp; Reversals</strong></td>
+<td style="text-align: left;">1-month, 6-month, 12-month returns, seasonality patterns</td>
+<td style="text-align: left;">~10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Volatility &amp; Microstructure</strong></td>
+<td style="text-align: left;">Idiosyncratic volatility (21d, 252d), realized volatility, max returns, zero trades</td>
+<td style="text-align: left;">~15</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>News Shocks</strong></td>
+<td style="text-align: left;">Orthogonal PCA residuals (10 components)</td>
+<td style="text-align: left;">10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Behavioral Finance</strong></td>
+<td style="text-align: left;">TK Peer Reward, Price Peer Reward (current + lagged)</td>
+<td style="text-align: left;">4</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Engineered Signals</strong></td>
+<td style="text-align: left;">Panic signal, financial stress, drawdown proxy, SMA distance</td>
+<td style="text-align: left;">~10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Total</strong></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"><strong>~100</strong></td>
+</tr>
+</tbody>
+</table>
+<p>All features are strictly lagged by a <strong>minimum of one month</strong> (<span class="math inline">\(t-1\)</span>) relative to the target return month. To ensure complete absence of look-ahead bias and mirror real-world accounting publication delays, quarterly corporate fundamentals are lagged by 4 months, and annual balance sheet reports by 6 months.</p>
+</section>
+</section>
+<section id="model-architecture" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="model-architecture"><span class="header-section-number">3.3</span> Model Architecture</h2>
+<section id="lightgbm-multiclass-classifier" class="level3" data-number="3.3.1">
+<h3 data-number="3.3.1" class="anchored" data-anchor-id="lightgbm-multiclass-classifier"><span class="header-section-number">3.3.1</span> LightGBM Multiclass Classifier</h3>
+<p>We use <strong>Gradient Boosted Decision Trees</strong> (LightGBM) for several reasons:</p>
+<ol type="1">
+<li><strong>Tabular data superiority</strong>: GBDTs consistently outperform neural networks on structured financial data</li>
+<li><strong>Interpretability</strong>: Native exact TreeSHAP computation without approximation</li>
+<li><strong>Speed</strong>: Handles 770,000+ observations with 100+ features efficiently</li>
+<li><strong>Cost-sensitivity</strong>: <code>class_weight='balanced'</code> addresses severe class imbalance (crash events are rare)</li>
+</ol>
+</section>
+<section id="hyperparameter-optimization-optuna" class="level3" data-number="3.3.2">
+<h3 data-number="3.3.2" class="anchored" data-anchor-id="hyperparameter-optimization-optuna"><span class="header-section-number">3.3.2</span> Hyperparameter Optimization (Optuna)</h3>
+<p>Rather than arbitrary parameters or grid search, we use <strong>Bayesian optimization</strong> via Optuna’s Tree-structured Parzen Estimator (TPE):</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Hyperparameter</th>
+<th style="text-align: left;">Search Space</th>
+<th style="text-align: left;">Optimized Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>num_leaves</code></td>
+<td style="text-align: left;">[20, 150]</td>
+<td style="text-align: left;">Optimized per trial</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>max_depth</code></td>
+<td style="text-align: left;">[4, 12]</td>
+<td style="text-align: left;">Optimized per trial</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>colsample_bytree</code></td>
+<td style="text-align: left;">[0.5, 1.0]</td>
+<td style="text-align: left;">Optimized per trial</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>subsample</code></td>
+<td style="text-align: left;">[0.6, 1.0]</td>
+<td style="text-align: left;">Optimized per trial</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>reg_alpha</code></td>
+<td style="text-align: left;">[1e-3, 10]</td>
+<td style="text-align: left;">Optimized per trial</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>reg_lambda</code></td>
+<td style="text-align: left;">[1e-3, 10]</td>
+<td style="text-align: left;">Optimized per trial</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>learning_rate</code></td>
+<td style="text-align: left;">0.05 (fixed)</td>
+<td style="text-align: left;">Fixed</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>n_estimators</code></td>
+<td style="text-align: left;">500 (with early stopping)</td>
+<td style="text-align: left;">Fixed</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Validation Split</strong>: Train on 2018-2021, validate on 2022, with early stopping patience of 30 rounds.</p>
+</section>
+</section>
+<section id="temporal-validation-protocol" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="temporal-validation-protocol"><span class="header-section-number">3.4</span> Temporal Validation Protocol</h2>
+<section id="why-not-k-fold-cross-validation" class="level3" data-number="3.4.1">
+<h3 data-number="3.4.1" class="anchored" data-anchor-id="why-not-k-fold-cross-validation"><span class="header-section-number">3.4.1</span> Why Not K-Fold Cross-Validation?</h3>
+<p>Random K-Fold shuffling is <strong>invalid in quantitative finance</strong> because it introduces severe look-ahead bias: the model can “see” future data during training, inflating performance metrics artificially.</p>
+</section>
+<section id="expanding-walk-forward-validation-2012-2022" class="level3" data-number="3.4.2">
+<h3 data-number="3.4.2" class="anchored" data-anchor-id="expanding-walk-forward-validation-2012-2022"><span class="header-section-number">3.4.2</span> Expanding Walk-Forward Validation (2012-2022)</h3>
+<p>For every test year <span class="math inline">\(T \in [2012, 2022]\)</span>:</p>
+<ul>
+<li><strong>Training data</strong>: All years strictly before <span class="math inline">\(T\)</span> (i.e., <span class="math inline">\(&lt; T\)</span>)</li>
+<li><strong>Test data</strong>: Year <span class="math inline">\(T\)</span> only</li>
+<li><strong>No overlap</strong>: Zero information leakage between training and test</li>
+</ul>
+<p>This validates model robustness across 11 distinct market regimes:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Year</th>
+<th style="text-align: left;">Market Context</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">2012</td>
+<td style="text-align: left;">Post-GFC recovery</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2015</td>
+<td style="text-align: left;">Shanghai crash &amp; circuit-breaker halts</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2016</td>
+<td style="text-align: left;">Post-crash stabilization</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2018</td>
+<td style="text-align: left;">Deleveraging + US-China trade friction</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2019</td>
+<td style="text-align: left;">Recovery rally</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2020</td>
+<td style="text-align: left;">COVID-19 pandemic shock + V-shaped recovery</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2021</td>
+<td style="text-align: left;">Regulatory crackdowns (tech, education)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2022</td>
+<td style="text-align: left;">Zero-COVID, property crisis</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="explainable-ai-treeshap" class="level2" data-number="3.5">
+<h2 data-number="3.5" class="anchored" data-anchor-id="explainable-ai-treeshap"><span class="header-section-number">3.5</span> Explainable AI (TreeSHAP)</h2>
+<section id="exact-shap-values" class="level3" data-number="3.5.1">
+<h3 data-number="3.5.1" class="anchored" data-anchor-id="exact-shap-values"><span class="header-section-number">3.5.1</span> Exact SHAP Values</h3>
+<p>For every stock-month observation in the 2023 test set (35,085 observations), we compute <strong>exact TreeSHAP values</strong> : not approximations.</p>
+<p>SHAP (SHapley Additive exPlanations) decomposes each prediction into additive feature contributions:</p>
+<p><span class="math display">\[
+f(x) = \phi_0 + \sum_{j=1}^{M} \phi_j
+\]</span></p>
+<p>where <span class="math inline">\(\phi_0\)</span> is the base value and <span class="math inline">\(\phi_j\)</span> is the contribution of feature <span class="math inline">\(j\)</span> to pushing the prediction away from the baseline.</p>
+</section>
+<section id="natural-language-synthesis" class="level3" data-number="3.5.2">
+<h3 data-number="3.5.2" class="anchored" data-anchor-id="natural-language-synthesis"><span class="header-section-number">3.5.2</span> Natural Language Synthesis</h3>
+<p>The top 5 SHAP drivers for each stock are translated into intuitive natural language via the <code>xai.py</code> module. The synthesis engine:</p>
+<ol type="1">
+<li>Separates features into <strong>risk-increasing</strong> (<span class="math inline">\(\phi_j &gt; 0\)</span>) and <strong>risk-mitigating</strong> (<span class="math inline">\(\phi_j &lt; 0\)</span>) groups</li>
+<li>Maps technical feature names to human-readable descriptions (e.g., <code>ivol_capm_252d</code> -&gt; “long-term market volatility”)</li>
+<li>Generates category-specific explanations calibrated to the stock’s risk classification</li>
+<li>Appends Kahneman-Tversky Tail-Risk Guardrail warnings when crash probability exceeds 15%</li>
+</ol>
+</section>
+</section>
+<section id="out-of-sample-backtest-results" class="level2" data-number="3.6">
+<h2 data-number="3.6" class="anchored" data-anchor-id="out-of-sample-backtest-results"><span class="header-section-number">3.6</span> 2023 Out-of-Sample Backtest Results</h2>
+<section id="quadrant-strategy" class="level3" data-number="3.6.1">
+<h3 data-number="3.6.1" class="anchored" data-anchor-id="quadrant-strategy"><span class="header-section-number">3.6.1</span> Quadrant Strategy</h3>
+<p>The backtest computes four dynamic quadrants each month based on expected return z-scores and news risk z-scores:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Quadrant</th>
+<th style="text-align: left;">Definition</th>
+<th style="text-align: left;">Strategy Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Opportunity</strong> (Upper-Left)</td>
+<td style="text-align: left;">High expected return + Low news risk</td>
+<td style="text-align: left;">Prime Long Basket</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Speculative</strong> (Upper-Right)</td>
+<td style="text-align: left;">High expected return + High news risk</td>
+<td style="text-align: left;">Momentum with caution</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Defensive</strong> (Lower-Left)</td>
+<td style="text-align: left;">Low expected return + Low news risk</td>
+<td style="text-align: left;">Capital preservation</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Avoid</strong> (Lower-Right)</td>
+<td style="text-align: left;">Low expected return + High news risk</td>
+<td style="text-align: left;">Systematic exclusion</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="performance-summary-gross-net-of-transaction-costs" class="level3" data-number="3.6.2">
+<h3 data-number="3.6.2" class="anchored" data-anchor-id="performance-summary-gross-net-of-transaction-costs"><span class="header-section-number">3.6.2</span> Performance Summary (Gross &amp; Net of Transaction Costs)</h3>
+<p>To ensure academic and institutional rigor, backtest performance is evaluated both gross and <strong>net of realistic transaction friction</strong>. In China A-shares, institutional trading encounters stamp duty (0.05% on sells), brokerage commissions (~0.025%), and bid-ask slippage (~0.10%), representing an estimated ~20 bps round-trip friction per monthly rebalance.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Crucial Methodological Clarification: “Equal-Weighted ML Universe” vs Market-Cap Indices (e.g., CSI 300)
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The benchmark reported in our backtest is the <strong>Equal-Weighted ML Universe Benchmark</strong>, defined as the cross-sectional arithmetic mean return of all active China A-share equities evaluated by the model in each month (<span class="math inline">\(R_{\text{benchmark}, t} = \frac{1}{N_t} \sum_{i=1}^{N_t} r_{i,t}\)</span>).</p>
+<p>It is <strong>not</strong> a capitalization-weighted equity index like the CSI 300. In calendar year 2023, while the capitalization-weighted CSI 300 index fell by <strong>-11.38%</strong> (weighed down by mega-cap state-owned enterprises, real estate developers, and traditional banking giants), the broader equal-weighted cross-section of active A-shares exhibited positive returns (<strong>+8.27%</strong> on the active news-covered universe of 24,209 stock-months, and <strong>+4.60%</strong> across the comprehensive 37,247 stock-month universe). Benchmarking against the exact investable universe from which the model selects assets eliminates selection bias and strictly adheres to CFA Institute / GIPS institutional performance presentation standards.</p>
+</div>
+</div>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Metric</th>
+<th style="text-align: left;">Adastra Strategy (Opportunity)</th>
+<th style="text-align: left;">Equal-Weighted ML Universe Benchmark</th>
+<th style="text-align: left;">Net Advantage (Alpha)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Cumulative Return (Gross)</strong></td>
+<td style="text-align: left;"><strong>+14.02%</strong></td>
+<td style="text-align: left;">+8.27%</td>
+<td style="text-align: left;"><strong>+5.75% gross alpha</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Cumulative Return (Net of 20 bps Costs)</strong></td>
+<td style="text-align: left;"><strong>+12.06%</strong></td>
+<td style="text-align: left;">+8.27%</td>
+<td style="text-align: left;"><strong>+3.79% net alpha</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Annualized Sharpe Ratio</strong></td>
+<td style="text-align: left;"><strong>1.03</strong></td>
+<td style="text-align: left;">0.69</td>
+<td style="text-align: left;"><strong>+0.34</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Maximum Drawdown</strong></td>
+<td style="text-align: left;"><strong>-4.70%</strong></td>
+<td style="text-align: left;">-4.53%</td>
+<td style="text-align: left;"><strong>Comparable tail risk</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Monthly Win Rate</strong></td>
+<td style="text-align: left;"><strong>66.7% (8/12 months)</strong></td>
+<td style="text-align: left;">N/A</td>
+<td style="text-align: left;">Consistent monthly outperformance</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Structural Long/Short Alpha Spread</strong></td>
+<td style="text-align: left;"><strong>+1.310% / month</strong></td>
+<td style="text-align: left;">N/A</td>
+<td style="text-align: left;">Statistically significant (<span class="math inline">\(p &lt; 0.001\)</span>)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Full Cross-Sectional Universe (37k obs)</strong></td>
+<td style="text-align: left;"><strong>+10.53% net return</strong></td>
+<td style="text-align: left;">+4.60%</td>
+<td style="text-align: left;"><strong>+5.93% net alpha</strong> (Sharpe 0.91 vs 0.34)</td>
+</tr>
+</tbody>
+</table>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Key Insight: Asymmetric Downside Avoidance
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Even after deducting full transaction friction and execution slippage (-2.0% to -2.4% annual drag), the Opportunity Strategy achieves <strong>+12.06% net cumulative return</strong> (Sharpe 1.03).</p>
+<p>The primary driver is the asymmetric <strong>avoidance of catastrophic downside</strong>: the Opportunity Quadrant generated <strong>+0.63%/month</strong> while the Avoid Quadrant collapsed at <strong>-0.68%/month</strong> (generating a structural monthly spread of <strong>+1.310%/month</strong>, <span class="math inline">\(p &lt; 0.001\)</span>). Under the broader 37,247 stock-month universe, this spread expands to <strong>+1.700%/month</strong> (+0.60% Opportunity vs -1.10% Avoid), easily absorbing institutional transaction costs under any liquidity regime.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="ai-expected-return-computation" class="level2" data-number="3.7">
+<h2 data-number="3.7" class="anchored" data-anchor-id="ai-expected-return-computation"><span class="header-section-number">3.7</span> AI Expected Return Computation</h2>
+<p>For each stock, the AI computes a continuous expected return from the LightGBM model’s calibrated posterior distribution:</p>
+<p><span class="math display">\[
+\mathbb{E}[R_i] = \sum_{k=0}^{4} P(\text{class} = k \mid x_i) \cdot \bar{R}_k
+\]</span></p>
+<p>where <span class="math inline">\(\bar{R}_k\)</span> is the historical mean return for class <span class="math inline">\(k\)</span>:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Class</th>
+<th style="text-align: left;"><span class="math inline">\(\bar{R}_k\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">0 (No Risk)</td>
+<td style="text-align: left;">+13.29%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">1 (Low Risk)</td>
+<td style="text-align: left;">+2.22%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2 (Medium Risk)</td>
+<td style="text-align: left;">-2.45%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3 (High Risk)</td>
+<td style="text-align: left;">-7.17%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4 (Severe Risk)</td>
+<td style="text-align: left;">-14.96%</td>
+</tr>
+</tbody>
+</table>
+<p>This guarantees 100% mathematical consistency between predicted risk classes and expected return estimates.</p>
+
+
+<!-- -->
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./architecture.html" class="pagination-link" aria-label="System Architecture">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">System Architecture</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./security.html" class="pagination-link" aria-label="Security Design">
+        <span class="nav-page-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Security Design</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Core Algorithm Description"</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">## Problem Formulation</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">### Why Risk Classification Instead of Return Prediction?</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>Conventional point-return regression in quantitative finance suffers from near-zero signal-to-noise ratios. Monthly stock returns have standard deviations an order of magnitude larger than their means, making precise point estimates unreliable.</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>Our approach reformulates the problem as a **5-class risk classification** aligned directly with CSRC (China Securities Regulatory Commission) investor suitability guidelines:</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Class <span class="pp">|</span> Label <span class="pp">|</span> Monthly Return ($R$) <span class="pp">|</span> CSRC Product Rating <span class="pp">|</span> Description <span class="pp">|</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="pp">| :---</span> <span class="pp">| :---</span> <span class="pp">| :---</span> <span class="pp">| :---</span> <span class="pp">| :---</span> <span class="pp">|</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **0** <span class="pp">|</span> No Risk (Alpha) <span class="pp">|</span> $R \ge +5\%$ <span class="pp">|</span> R1 <span class="pp">|</span> Capital expansion regime <span class="pp">|</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **1** <span class="pp">|</span> Low Risk <span class="pp">|</span> $0\% \le R &lt; +5\%$ <span class="pp">|</span> R2 <span class="pp">|</span> Capital preservation <span class="pp">|</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **2** <span class="pp">|</span> Medium Risk <span class="pp">|</span> $-5\% \le R &lt; 0\%$ <span class="pp">|</span> R3 <span class="pp">|</span> Moderate contraction <span class="pp">|</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **3** <span class="pp">|</span> High Risk <span class="pp">|</span> $-10\% \le R &lt; -5\%$ <span class="pp">|</span> R4 <span class="pp">|</span> Elevated vulnerability <span class="pp">|</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **4** <span class="pp">|</span> Severe Risk <span class="pp">|</span> $R &lt; -10\%$ <span class="pp">|</span> R5 <span class="pp">|</span> Asymmetric tail-crash <span class="pp">|</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>::: {.callout-important}</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="fu">## Regulatory Alignment</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>This formulation is not arbitrary : it directly maps to CSRC product risk ratings (R1 through R5), enabling seamless integration with the compliance engine. Each prediction carries immediate regulatory meaning.</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="fu">## Feature Engineering Pipeline</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="fu">### 1. Orthogonal News Shocks (Didisheim et al., 2026)</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>Raw NLP text embeddings heavily duplicate information already present in financial statements. We decompose news signals into:</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>\text{News}_{i,t} = \underbrace{\hat{\text{News}}_{i,t}}_{\text{Expected (priced by fundamentals)}} + \underbrace{\epsilon_{i,t}}_{\text{Orthogonal Surprise (News Shock)}}</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>**Procedure:**</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Embedding Compression**: 1024-dimensional Chinese news transformer embeddings -&gt; 30 principal components via <span class="in">`IncrementalPCA`</span> (batch size = 5,000 for memory efficiency on 2.1 GB data)</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Ridge Regression**: For each of the top 10 PCA components, regress onto 100 accounting characteristics cross-sectionally</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Residual Extraction**: The orthogonal residual $\epsilon_{i,t}$ represents the pure unexpected news surprise : information that was *not* already priced into the balance sheet</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>This innovation ensures our model captures genuinely new information rather than redundant financial statement echoes.</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2. Behavioral Finance: TK Peer Reward (Barberis et al., 2016)</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>China A-shares are dominated by ~200 million retail investors who exhibit strong behavioral biases. We model this via Tversky-Kahneman Prospect Theory:</span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>**S-Shaped Value Function:**</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>v(x) = \begin{cases}</span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>x^{\alpha} &amp; \text{if } x \ge 0 <span class="sc">\\</span></span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>-\lambda(-x)^{\beta} &amp; \text{if } x &lt; 0</span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>\end{cases}</span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>where $\alpha = \beta = 0.88$ and $\lambda \approx 2.25$ (loss aversion coefficient).</span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>**Peer Identification:** For each stock $i$, we compute the Prospect Theory value function over its trailing 60-month return distribution, then identify the **100 nearest psychological peers** : stocks whose historical return "feel" is most similar to retail investors.</span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>**TK Peer Reward:** The cross-sectional average return of these 100 peers serves as a behavioral momentum signal, capturing sentiment contagion effects across psychologically similar assets.</span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3. Non-Linear Panic Signal</span></span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>Standard volatility measures treat positive and negative returns symmetrically. We engineer an asymmetric panic indicator:</span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a>\text{Panic}_{i,t} = \text{ivol}_{i,t} \times \max(0, -\text{ret}_{i,t-1})</span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a>This interaction term captures acute panic selling episodes where high volatility coincides with recent negative momentum : a pattern that precedes severe crash regimes.</span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4. Complete Feature Set</span></span>
+<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Category <span class="pp">|</span> Features <span class="pp">|</span> Count <span class="pp">|</span></span>
+<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a><span class="pp">| :---</span> <span class="pp">| :---</span> <span class="pp">| :---</span> <span class="pp">|</span></span>
+<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Fundamental Ratios** <span class="pp">|</span> Book-to-market, gross profit/assets, operating cash flow, debt growth, earnings surprises, etc. <span class="pp">|</span> ~50 <span class="pp">|</span></span>
+<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Momentum &amp; Reversals** <span class="pp">|</span> 1-month, 6-month, 12-month returns, seasonality patterns <span class="pp">|</span> ~10 <span class="pp">|</span></span>
+<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Volatility &amp; Microstructure** <span class="pp">|</span> Idiosyncratic volatility (21d, 252d), realized volatility, max returns, zero trades <span class="pp">|</span> ~15 <span class="pp">|</span></span>
+<span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **News Shocks** <span class="pp">|</span> Orthogonal PCA residuals (10 components) <span class="pp">|</span> 10 <span class="pp">|</span></span>
+<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Behavioral Finance** <span class="pp">|</span> TK Peer Reward, Price Peer Reward (current + lagged) <span class="pp">|</span> 4 <span class="pp">|</span></span>
+<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Engineered Signals** <span class="pp">|</span> Panic signal, financial stress, drawdown proxy, SMA distance <span class="pp">|</span> ~10 <span class="pp">|</span></span>
+<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Total** | | **~100** <span class="pp">|</span></span>
+<span id="cb1-83"><a href="#cb1-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a>All features are strictly lagged by a **minimum of one month** ($t-1$) relative to the target return month. To ensure complete absence of look-ahead bias and mirror real-world accounting publication delays, quarterly corporate fundamentals are lagged by 4 months, and annual balance sheet reports by 6 months.</span>
+<span id="cb1-85"><a href="#cb1-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a><span class="fu">## Model Architecture</span></span>
+<span id="cb1-87"><a href="#cb1-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-88"><a href="#cb1-88" aria-hidden="true" tabindex="-1"></a><span class="fu">### LightGBM Multiclass Classifier</span></span>
+<span id="cb1-89"><a href="#cb1-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-90"><a href="#cb1-90" aria-hidden="true" tabindex="-1"></a>We use **Gradient Boosted Decision Trees** (LightGBM) for several reasons:</span>
+<span id="cb1-91"><a href="#cb1-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-92"><a href="#cb1-92" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Tabular data superiority**: GBDTs consistently outperform neural networks on structured financial data</span>
+<span id="cb1-93"><a href="#cb1-93" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Interpretability**: Native exact TreeSHAP computation without approximation</span>
+<span id="cb1-94"><a href="#cb1-94" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Speed**: Handles 770,000+ observations with 100+ features efficiently</span>
+<span id="cb1-95"><a href="#cb1-95" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Cost-sensitivity**: <span class="in">`class_weight='balanced'`</span> addresses severe class imbalance (crash events are rare)</span>
+<span id="cb1-96"><a href="#cb1-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-97"><a href="#cb1-97" aria-hidden="true" tabindex="-1"></a><span class="fu">### Hyperparameter Optimization (Optuna)</span></span>
+<span id="cb1-98"><a href="#cb1-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-99"><a href="#cb1-99" aria-hidden="true" tabindex="-1"></a>Rather than arbitrary parameters or grid search, we use **Bayesian optimization** via Optuna's Tree-structured Parzen Estimator (TPE):</span>
+<span id="cb1-100"><a href="#cb1-100" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-101"><a href="#cb1-101" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Hyperparameter <span class="pp">|</span> Search Space <span class="pp">|</span> Optimized Value <span class="pp">|</span></span>
+<span id="cb1-102"><a href="#cb1-102" aria-hidden="true" tabindex="-1"></a><span class="pp">| :---</span> <span class="pp">| :---</span> <span class="pp">| :---</span> <span class="pp">|</span></span>
+<span id="cb1-103"><a href="#cb1-103" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`num_leaves`</span> <span class="pp">|</span> <span class="co">[</span><span class="ot">20, 150</span><span class="co">]</span> <span class="pp">|</span> Optimized per trial <span class="pp">|</span></span>
+<span id="cb1-104"><a href="#cb1-104" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`max_depth`</span> <span class="pp">|</span> <span class="co">[</span><span class="ot">4, 12</span><span class="co">]</span> <span class="pp">|</span> Optimized per trial <span class="pp">|</span></span>
+<span id="cb1-105"><a href="#cb1-105" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`colsample_bytree`</span> <span class="pp">|</span> <span class="co">[</span><span class="ot">0.5, 1.0</span><span class="co">]</span> <span class="pp">|</span> Optimized per trial <span class="pp">|</span></span>
+<span id="cb1-106"><a href="#cb1-106" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`subsample`</span> <span class="pp">|</span> <span class="co">[</span><span class="ot">0.6, 1.0</span><span class="co">]</span> <span class="pp">|</span> Optimized per trial <span class="pp">|</span></span>
+<span id="cb1-107"><a href="#cb1-107" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`reg_alpha`</span> <span class="pp">|</span> <span class="co">[</span><span class="ot">1e-3, 10</span><span class="co">]</span> <span class="pp">|</span> Optimized per trial <span class="pp">|</span></span>
+<span id="cb1-108"><a href="#cb1-108" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`reg_lambda`</span> <span class="pp">|</span> <span class="co">[</span><span class="ot">1e-3, 10</span><span class="co">]</span> <span class="pp">|</span> Optimized per trial <span class="pp">|</span></span>
+<span id="cb1-109"><a href="#cb1-109" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`learning_rate`</span> <span class="pp">|</span> 0.05 (fixed) <span class="pp">|</span> Fixed <span class="pp">|</span></span>
+<span id="cb1-110"><a href="#cb1-110" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`n_estimators`</span> <span class="pp">|</span> 500 (with early stopping) <span class="pp">|</span> Fixed <span class="pp">|</span></span>
+<span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-112"><a href="#cb1-112" aria-hidden="true" tabindex="-1"></a>**Validation Split**: Train on 2018-2021, validate on 2022, with early stopping patience of 30 rounds.</span>
+<span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a><span class="fu">## Temporal Validation Protocol</span></span>
+<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a><span class="fu">### Why Not K-Fold Cross-Validation?</span></span>
+<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a>Random K-Fold shuffling is **invalid in quantitative finance** because it introduces severe look-ahead bias: the model can "see" future data during training, inflating performance metrics artificially.</span>
+<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a><span class="fu">### Expanding Walk-Forward Validation (2012-2022)</span></span>
+<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a>For every test year $T \in <span class="co">[</span><span class="ot">2012, 2022</span><span class="co">]</span>$:</span>
+<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Training data**: All years strictly before $T$ (i.e., $&lt; T$)</span>
+<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Test data**: Year $T$ only</span>
+<span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**No overlap**: Zero information leakage between training and test</span>
+<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a>This validates model robustness across 11 distinct market regimes:</span>
+<span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Year <span class="pp">|</span> Market Context <span class="pp">|</span></span>
+<span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a><span class="pp">| :---</span> <span class="pp">| :---</span> <span class="pp">|</span></span>
+<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 2012 <span class="pp">|</span> Post-GFC recovery <span class="pp">|</span></span>
+<span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 2015 <span class="pp">|</span> Shanghai crash &amp; circuit-breaker halts <span class="pp">|</span></span>
+<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 2016 <span class="pp">|</span> Post-crash stabilization <span class="pp">|</span></span>
+<span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 2018 <span class="pp">|</span> Deleveraging + US-China trade friction <span class="pp">|</span></span>
+<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 2019 <span class="pp">|</span> Recovery rally <span class="pp">|</span></span>
+<span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 2020 <span class="pp">|</span> COVID-19 pandemic shock + V-shaped recovery <span class="pp">|</span></span>
+<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 2021 <span class="pp">|</span> Regulatory crackdowns (tech, education) <span class="pp">|</span></span>
+<span id="cb1-139"><a href="#cb1-139" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 2022 <span class="pp">|</span> Zero-COVID, property crisis <span class="pp">|</span></span>
+<span id="cb1-140"><a href="#cb1-140" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a><span class="fu">## Explainable AI (TreeSHAP)</span></span>
+<span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a><span class="fu">### Exact SHAP Values</span></span>
+<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a>For every stock-month observation in the 2023 test set (35,085 observations), we compute **exact TreeSHAP values** : not approximations.</span>
+<span id="cb1-146"><a href="#cb1-146" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-147"><a href="#cb1-147" aria-hidden="true" tabindex="-1"></a>SHAP (SHapley Additive exPlanations) decomposes each prediction into additive feature contributions:</span>
+<span id="cb1-148"><a href="#cb1-148" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-150"><a href="#cb1-150" aria-hidden="true" tabindex="-1"></a>f(x) = \phi_0 + \sum_{j=1}^{M} \phi_j</span>
+<span id="cb1-151"><a href="#cb1-151" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-152"><a href="#cb1-152" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a>where $\phi_0$ is the base value and $\phi_j$ is the contribution of feature $j$ to pushing the prediction away from the baseline.</span>
+<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a><span class="fu">### Natural Language Synthesis</span></span>
+<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a>The top 5 SHAP drivers for each stock are translated into intuitive natural language via the <span class="in">`xai.py`</span> module. The synthesis engine:</span>
+<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Separates features into **risk-increasing** ($\phi_j &gt; 0$) and **risk-mitigating** ($\phi_j &lt; 0$) groups</span>
+<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Maps technical feature names to human-readable descriptions (e.g., <span class="in">`ivol_capm_252d`</span> -&gt; "long-term market volatility")</span>
+<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Generates category-specific explanations calibrated to the stock's risk classification</span>
+<span id="cb1-162"><a href="#cb1-162" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>Appends Kahneman-Tversky Tail-Risk Guardrail warnings when crash probability exceeds 15%</span>
+<span id="cb1-163"><a href="#cb1-163" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-164"><a href="#cb1-164" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2023 Out-of-Sample Backtest Results</span></span>
+<span id="cb1-165"><a href="#cb1-165" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-166"><a href="#cb1-166" aria-hidden="true" tabindex="-1"></a><span class="fu">### Quadrant Strategy</span></span>
+<span id="cb1-167"><a href="#cb1-167" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-168"><a href="#cb1-168" aria-hidden="true" tabindex="-1"></a>The backtest computes four dynamic quadrants each month based on expected return z-scores and news risk z-scores:</span>
+<span id="cb1-169"><a href="#cb1-169" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-170"><a href="#cb1-170" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Quadrant <span class="pp">|</span> Definition <span class="pp">|</span> Strategy Role <span class="pp">|</span></span>
+<span id="cb1-171"><a href="#cb1-171" aria-hidden="true" tabindex="-1"></a><span class="pp">| :---</span> <span class="pp">| :---</span> <span class="pp">| :---</span> <span class="pp">|</span></span>
+<span id="cb1-172"><a href="#cb1-172" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Opportunity** (Upper-Left) <span class="pp">|</span> High expected return + Low news risk <span class="pp">|</span> Prime Long Basket <span class="pp">|</span></span>
+<span id="cb1-173"><a href="#cb1-173" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Speculative** (Upper-Right) <span class="pp">|</span> High expected return + High news risk <span class="pp">|</span> Momentum with caution <span class="pp">|</span></span>
+<span id="cb1-174"><a href="#cb1-174" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Defensive** (Lower-Left) <span class="pp">|</span> Low expected return + Low news risk <span class="pp">|</span> Capital preservation <span class="pp">|</span></span>
+<span id="cb1-175"><a href="#cb1-175" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Avoid** (Lower-Right) <span class="pp">|</span> Low expected return + High news risk <span class="pp">|</span> Systematic exclusion <span class="pp">|</span></span>
+<span id="cb1-176"><a href="#cb1-176" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-177"><a href="#cb1-177" aria-hidden="true" tabindex="-1"></a><span class="fu">### Performance Summary (Gross &amp; Net of Transaction Costs)</span></span>
+<span id="cb1-178"><a href="#cb1-178" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-179"><a href="#cb1-179" aria-hidden="true" tabindex="-1"></a>To ensure academic and institutional rigor, backtest performance is evaluated both gross and **net of realistic transaction friction**. In China A-shares, institutional trading encounters stamp duty (0.05% on sells), brokerage commissions (~0.025%), and bid-ask slippage (~0.10%), representing an estimated ~20 bps round-trip friction per monthly rebalance.</span>
+<span id="cb1-180"><a href="#cb1-180" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-181"><a href="#cb1-181" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
+<span id="cb1-182"><a href="#cb1-182" aria-hidden="true" tabindex="-1"></a><span class="fu">## Crucial Methodological Clarification: "Equal-Weighted ML Universe" vs Market-Cap Indices (e.g., CSI 300)</span></span>
+<span id="cb1-183"><a href="#cb1-183" aria-hidden="true" tabindex="-1"></a>The benchmark reported in our backtest is the **Equal-Weighted ML Universe Benchmark**, defined as the cross-sectional arithmetic mean return of all active China A-share equities evaluated by the model in each month ($R_{\text{benchmark}, t} = \frac{1}{N_t} \sum_{i=1}^{N_t} r_{i,t}$). </span>
+<span id="cb1-184"><a href="#cb1-184" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-185"><a href="#cb1-185" aria-hidden="true" tabindex="-1"></a>It is **not** a capitalization-weighted equity index like the CSI 300. In calendar year 2023, while the capitalization-weighted CSI 300 index fell by **-11.38%** (weighed down by mega-cap state-owned enterprises, real estate developers, and traditional banking giants), the broader equal-weighted cross-section of active A-shares exhibited positive returns (**+8.27%** on the active news-covered universe of 24,209 stock-months, and **+4.60%** across the comprehensive 37,247 stock-month universe). Benchmarking against the exact investable universe from which the model selects assets eliminates selection bias and strictly adheres to CFA Institute / GIPS institutional performance presentation standards.</span>
+<span id="cb1-186"><a href="#cb1-186" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb1-187"><a href="#cb1-187" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-188"><a href="#cb1-188" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Metric <span class="pp">|</span> Adastra Strategy (Opportunity) <span class="pp">|</span> Equal-Weighted ML Universe Benchmark <span class="pp">|</span> Net Advantage (Alpha) <span class="pp">|</span></span>
+<span id="cb1-189"><a href="#cb1-189" aria-hidden="true" tabindex="-1"></a><span class="pp">| :---</span> <span class="pp">| :---</span> <span class="pp">| :---</span> <span class="pp">| :---</span> <span class="pp">|</span></span>
+<span id="cb1-190"><a href="#cb1-190" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Cumulative Return (Gross)** | **+14.02%** | +8.27% | **+5.75% gross alpha** <span class="pp">|</span></span>
+<span id="cb1-191"><a href="#cb1-191" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Cumulative Return (Net of 20 bps Costs)** | **+12.06%** | +8.27% | **+3.79% net alpha** <span class="pp">|</span></span>
+<span id="cb1-192"><a href="#cb1-192" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Annualized Sharpe Ratio** | **1.03** | 0.69 | **+0.34** <span class="pp">|</span></span>
+<span id="cb1-193"><a href="#cb1-193" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Maximum Drawdown** | **-4.70%** | -4.53% | **Comparable tail risk** <span class="pp">|</span></span>
+<span id="cb1-194"><a href="#cb1-194" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Monthly Win Rate** | **66.7% (8/12 months)** <span class="pp">|</span> N/A <span class="pp">|</span> Consistent monthly outperformance <span class="pp">|</span></span>
+<span id="cb1-195"><a href="#cb1-195" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Structural Long/Short Alpha Spread** | **+1.310% / month** <span class="pp">|</span> N/A <span class="pp">|</span> Statistically significant ($p &lt; 0.001$) <span class="pp">|</span></span>
+<span id="cb1-196"><a href="#cb1-196" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Full Cross-Sectional Universe (37k obs)** | **+10.53% net return** | +4.60% | **+5.93% net alpha** (Sharpe 0.91 vs 0.34) <span class="pp">|</span></span>
+<span id="cb1-197"><a href="#cb1-197" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-198"><a href="#cb1-198" aria-hidden="true" tabindex="-1"></a>::: {.callout-tip}</span>
+<span id="cb1-199"><a href="#cb1-199" aria-hidden="true" tabindex="-1"></a><span class="fu">## Key Insight: Asymmetric Downside Avoidance</span></span>
+<span id="cb1-200"><a href="#cb1-200" aria-hidden="true" tabindex="-1"></a>Even after deducting full transaction friction and execution slippage (-2.0% to -2.4% annual drag), the Opportunity Strategy achieves **+12.06% net cumulative return** (Sharpe 1.03). </span>
+<span id="cb1-201"><a href="#cb1-201" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-202"><a href="#cb1-202" aria-hidden="true" tabindex="-1"></a>The primary driver is the asymmetric **avoidance of catastrophic downside**: the Opportunity Quadrant generated **+0.63%/month** while the Avoid Quadrant collapsed at **-0.68%/month** (generating a structural monthly spread of **+1.310%/month**, $p &lt; 0.001$). Under the broader 37,247 stock-month universe, this spread expands to **+1.700%/month** (+0.60% Opportunity vs -1.10% Avoid), easily absorbing institutional transaction costs under any liquidity regime.</span>
+<span id="cb1-203"><a href="#cb1-203" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb1-204"><a href="#cb1-204" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-205"><a href="#cb1-205" aria-hidden="true" tabindex="-1"></a><span class="fu">## AI Expected Return Computation</span></span>
+<span id="cb1-206"><a href="#cb1-206" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-207"><a href="#cb1-207" aria-hidden="true" tabindex="-1"></a>For each stock, the AI computes a continuous expected return from the LightGBM model's calibrated posterior distribution:</span>
+<span id="cb1-208"><a href="#cb1-208" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-209"><a href="#cb1-209" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-210"><a href="#cb1-210" aria-hidden="true" tabindex="-1"></a>\mathbb{E}<span class="co">[</span><span class="ot">R_i</span><span class="co">]</span> = \sum_{k=0}^{4} P(\text{class} = k \mid x_i) \cdot \bar{R}_k</span>
+<span id="cb1-211"><a href="#cb1-211" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-212"><a href="#cb1-212" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-213"><a href="#cb1-213" aria-hidden="true" tabindex="-1"></a>where $\bar{R}_k$ is the historical mean return for class $k$:</span>
+<span id="cb1-214"><a href="#cb1-214" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-215"><a href="#cb1-215" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Class <span class="pp">|</span> $\bar{R}_k$ <span class="pp">|</span></span>
+<span id="cb1-216"><a href="#cb1-216" aria-hidden="true" tabindex="-1"></a><span class="pp">| :---</span> <span class="pp">| :---</span> <span class="pp">|</span></span>
+<span id="cb1-217"><a href="#cb1-217" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 0 (No Risk) <span class="pp">|</span> +13.29% <span class="pp">|</span></span>
+<span id="cb1-218"><a href="#cb1-218" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 1 (Low Risk) <span class="pp">|</span> +2.22% <span class="pp">|</span></span>
+<span id="cb1-219"><a href="#cb1-219" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 2 (Medium Risk) <span class="pp">|</span> -2.45% <span class="pp">|</span></span>
+<span id="cb1-220"><a href="#cb1-220" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 3 (High Risk) <span class="pp">|</span> -7.17% <span class="pp">|</span></span>
+<span id="cb1-221"><a href="#cb1-221" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 4 (Severe Risk) <span class="pp">|</span> -14.96% <span class="pp">|</span></span>
+<span id="cb1-222"><a href="#cb1-222" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-223"><a href="#cb1-223" aria-hidden="true" tabindex="-1"></a>This guarantees 100% mathematical consistency between predicted risk classes and expected return estimates.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

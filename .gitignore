@@ -1,0 +1,80 @@
+# Dependencies
+node_modules/
+*/node_modules/
+*.nosync
+.pnp
+.pnp.js
+
+# Environment variables
+.env
+.env.*
+*.env
+
+# Python
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.venv*/
+.pytest_cache/
+
+# ========================================================
+# DATA INTEGRITY & IP PROTECTION (STRICTLY IGNORED)
+# Commercial / proprietary datasets (CSMAR, raw market data)
+# ========================================================
+teacher data/
+teacher data/**
+data/
+raw_data/
+*.csv
+*.xlsx
+*.h5
+*.zip
+*.parquet
+
+# IDE & OS
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Quarto intermediate directories & LaTeX aux files
+*_files/
+*.aux
+*.nav
+*.snm
+*.toc
+*.vrb
+*.out
+*.synctex.gz
+reports/_output/
+.quarto/
+
+# Logs
+*.log
+!logs/sandbox_execution.log
+
+# Scratch & Legacy Archives
+scratch/
+archive/
+
+# One-off patches & temporary scripts
+*.patch
+patch_*.py
+ml_pipeline_extracted.py
+
+# Internal Competition Notes (Confidential)
+docs/JURY_PITCH_GUIDE.md
+*PITCH_GUIDE*
+docs/AUDIT_REPORT.md
+prof_advice.md
+Halis_Feedback_Plan.md
+Concepts_Explicatifs.md
+PROJECT_CHARTER.md
+*.personal_notes*
+
+

@@ -1,0 +1,43 @@
+---
+title: "Adastra : Technical Documentation"
+subtitle: "System Architecture · Core Algorithm · Security Design"
+---
+
+## Executive Summary
+
+**Adastra** is an intelligent quantitative risk management and wealth advisory cockpit designed for the China A-shares equity market (~3,500 active listed companies). Built for the **Shenzhen International FinTech Competition (FinTechathon 2026) : WeBank Track**, the platform couples institutional quantitative finance, behavioral asset pricing, and natural language processing of Chinese financial news, with native compliance under the China Securities Regulatory Commission (CSRC) suitability guidelines.
+
+### Core Capabilities
+
+| Capability | Description |
+| :--- | :--- |
+| **5-Class Risk Classification** | Multiclass LightGBM mapping every A-share stock-month to CSRC-aligned risk tiers (R1 to R5) |
+| **Orthogonal News Shocks** | Pure unexpected news surprise isolated via PCA + Ridge regression residuals |
+| **Behavioral Finance (TK Peers)** | Tversky-Kahneman Prospect Theory peer momentum capturing cross-asset sentiment contagion |
+| **Exact Explainable AI** | Native TreeSHAP attributions translated into natural language for retail wealth clients |
+| **CSRC Suitability Engine** | Real-time investor-asset compliance evaluation with SHA-256 cryptographic audit trail |
+| **Walk-Forward Backtest** | 2012-2022 temporal validation; 2023 out-of-sample alpha of **+3.79% to +5.93%** over the Equal-Weighted ML Universe Benchmark (+12.06% net return, Sharpe 1.03) |
+
+### Technology Stack
+
+| Layer | Technologies |
+| :--- | :--- |
+| **ML Pipeline** | Python 3.10+, LightGBM, SHAP, Optuna, IncrementalPCA, Ridge Regression |
+| **Backend API** | FastAPI 0.100+, Pandas, NumPy, Pydantic |
+| **Frontend Cockpit** | React 19, Vite 8, Tailwind CSS 4, Framer Motion, Recharts, Shadcn UI |
+| **Security** | SHA-256 cryptographic hashing, CSRC R1 to R5 suitability engine, FISCO BCOS-ready audit log |
+| **Data** | Monthly returns (Parquet), Chinese news embeddings (1024-d), 100+ accounting characteristics |
+
+### Open-Source Code Repository
+
+- **GitHub Repository**: [https://github.com/adrielakak/webank](https://github.com/adrielakak/webank)
+- **Track**: WeBank FinTechathon 2026 · AI & Quantitative Asset Management
+
+::: {.callout-important}
+## Dual-Environment Data Governance & Academic IP Protection
+In accordance with institutional academic research ethics, commercial database licensing agreements (e.g., CSMAR / GTA Information Technology Co.), and intellectual property protection regulations:
+
+1. **Public Web Application & Cloud Deployment**: The live web application hosted on public cloud infrastructure exclusively serves **synthetic, mathematically calibrated benchmark datasets** (`mock_dashboard_points.parquet`, `mock_expected_return_2023.csv`). This prevents unauthorized web scraping, protects proprietary datasets from theft, and complies with commercial distribution restrictions.
+2. **Local Research Environment (Mac Workstation)**: The genuine, full-scale empirical training datasets (~2.1 GB of raw 1024-dimensional Chinese financial news transformer embeddings, 12 years of CSMAR monthly trading returns, and 100+ accounting characteristics for ~3,500 listed equities) reside exclusively in a secured local directory on the developer's local Mac (`teacher data/`). They are strictly excluded from version control via `.gitignore` and are never exposed or transferred to the public web or cloud servers.
+:::
+

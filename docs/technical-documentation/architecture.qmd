@@ -1,0 +1,209 @@
+---
+title: "System Architecture"
+---
+
+## High-Level Architecture
+
+Adastra is decoupled into **four independently testable layers**, connected via a clean REST API boundary:
+
+::: {#fig-architecture}
+```{mermaid}
+%%{init: {'flowchart': {'subGraphTitleMargin': {'top': 15, 'bottom': 35}, 'nodeSpacing': 40, 'rankSpacing': 45}}}%%
+flowchart TB
+    subgraph S1["1. Feature Engineering"]
+        direction TB
+        A["Chinese News Embeddings (1024-d)"] --> B["IncrementalPCA (30 Comp.)"]
+        B --> C["Ridge Residuals (News Shocks)"]
+        D["Fundamental Ratios (100+ Features)"] --> E["Behavioral TK Peers (t-1 Lag)"]
+        C --> F["Unified Lagged Feature Matrix"]
+        E --> F
+    end
+
+    subgraph S2["2. ML & Explainability"]
+        direction TB
+        G["Multiclass LightGBM (5 CSRC Classes)"]
+        H["Exact TreeSHAP Attributions"]
+        I["Enriched Production Dataset"]
+        G --> H
+        H --> I
+    end
+
+    subgraph S3["3. Serving & User Cockpit"]
+        direction TB
+        J["FastAPI Vectorized Backend"]
+        K["CSRC R1-R5 Suitability Engine"]
+        L["Natural Language XAI Engine"]
+        M["React / Vite Wealth Cockpit"]
+        J --> K
+        J --> L
+        J --> M
+    end
+
+    S1 --> S2
+    S2 --> S3
+```
+End-to-end system architecture
+:::
+
+## Layer 1: ML Pipeline (Offline Batch)
+
+The quantitative engine runs offline to produce enriched prediction datasets. It is **fully deterministic** : zero LLM dependency for any financial computation.
+
+### Data Ingestion & Feature Engineering
+
+| Source File | Size | Content |
+| :--- | :--- | :--- |
+| `features_light.parquet` | 243 MB | 100+ fundamental accounting ratios for ~3,500 stocks × 12 years |
+| `news_embeddings_1024d.parquet` | 2.1 GB | 1024-dimensional Chinese news transformer embeddings |
+
+*Note: In accordance with our Zero-Data Policy and commercial database IP licenses, raw source datasets (`China_Ashares_FC_and_NewsEmbedding.parquet`, 2.1 GB) reside exclusively in a secured offline directory on the developer's local Mac workstation. The public cloud deployment operates on synthetic calibrated benchmark data to prevent data leakage and theft.*
+
+**Processing Pipeline:**
+
+1. **Dimensionality Reduction (Look-Ahead Free)**: `IncrementalPCA` compresses 1024 news embedding dimensions -> 30 principal components (preserving >85% explained variance). To strictly eliminate look-ahead bias, the PCA model is fitted **exclusively on historical training data** ($t < 2023$), and subsequently used to transform both training and out-of-sample test embeddings.
+2. **Orthogonal Surprise Filtering**: Ridge Regression of 10 PCA news dimensions onto 100 accounting characteristics extracts the residual $\epsilon = \text{News} - \hat{\text{News}}$, isolating pure unexpected news surprise (Didisheim et al., 2026).
+3. **Behavioral Finance Features**: Tversky-Kahneman Prospect Theory value function distance identifies **100 nearest psychological peers** per stock, computing cross-asset momentum signals (`tk_peer_reward`).
+4. **Panic Signal Engineering**: Interaction term $\text{ivol} \times \max(0, -\text{ret})$ captures acute panic selling episodes.
+5. **Strict Temporal Alignment & Lagging**: Predictors are aligned with rigorous temporal discipline ($t-1$ relative to target returns) to eliminate look-ahead bias. Financial accounting characteristics natively incorporate reporting publication delays (4-month lag for quarterly reports, 6-month lag for annual statements).
+
+### Model Training & Inference
+
+- **Algorithm**: Cost-sensitive multiclass LightGBM with `class_weight='balanced'`
+- **Hyperparameter Optimization**: Optuna (Tree-structured Parzen Estimator), 15 Bayesian trials on temporal holdout (Train: 2018-2021, Val: 2022)
+- **Validation**: Expanding Walk-Forward protocol across 11 out-of-sample years (2012-2022)
+- **Output**: Calibrated 5-class posterior probabilities + exact TreeSHAP attribution vectors for every stock-month
+
+### Output Artifacts
+
+| Artifact | Format | Content |
+| :--- | :--- | :--- |
+| `results_2023.parquet` | Parquet | Raw model predictions with SHAP values (35,085 observations) |
+| `dashboard_points.parquet` | Parquet | Enriched visualization dataset with sectors, KNN imputation |
+| `expected_return_2023.csv` | CSV | Cross-sectional expected return z-scores for backtest computation |
+| `confusion_matrix.png` | PNG | 5×5 out-of-sample confusion matrix |
+| `walkforward_lgbm_v5.csv` | CSV | Walk-forward validation metrics across 11 test years |
+
+
+## Layer 2: Backend API (FastAPI)
+
+The backend is a **stateless, in-memory vectorized** REST API serving predictions, explainability, compliance evaluations, and advisory dialogue.
+
+### API Endpoints
+
+| Route | Method | Description |
+| :--- | :--- | :--- |
+| `/` | `GET` | Health check and version information |
+| `/api/dates` | `GET` | Available trading months (ISO format) |
+| `/api/stocks` | `GET` | 2D scatter coordinates, 5-class probabilities, sectors, risk classifications |
+| `/api/stocks/{stkcd}` | `GET` | Detailed asset profile: TreeSHAP, 5-year history, compliance, XAI explanation |
+| `/api/stats` | `GET` | Cross-sectional market statistics (return/volatility distributions) |
+| `/api/backtest` | `GET` | Full 2023 out-of-sample backtest: Opportunity vs Benchmark vs Avoid |
+| `/api/profile/assess` | `POST` | CSRC Investor Suitability Assessment (C1-C5) with SHA-256 certificate |
+| `/api/portfolio/recommend` | `GET` | Compliant inverse-volatility weighted portfolio generation |
+| `/api/adviser/chat` | `POST` | Interactive wealth advisory dialogue engine |
+
+### Key Backend Modules
+
+| Module | Responsibility |
+| :--- | :--- |
+| `main.py` | FastAPI application, CORS, data loading, route handlers, backtest computation, synthetic fallback |
+| `compliance.py` | CSRC R1-R5 suitability rules engine with immutable SHA-256 audit hashing |
+| `xai.py` | Natural language synthesis: translates SHAP vectors -> intuitive financial explanations |
+| `adviser.py` | Wealth advisory engine: investor profiling, portfolio optimization, intent-based dialogue |
+| `prepare_data.py` | ETL pipeline: KNN imputation + authentic China A-shares industry classification |
+
+### Synthetic Fallback (Zero-Data Policy)
+
+When proprietary data files are absent (e.g., on public cloud deployments), the API generates **academic synthetic benchmark data** in-memory:
+
+- 50 synthetic stocks × 12 months (2023)
+- Realistic return distributions, sector assignments, SHAP features
+- Includes a crash case study (Stock 688566, Nov-Dec severe risk)
+- Ensures 100% API functionality without IP violation
+
+## Layer 3: Frontend Cockpit (React + Vite)
+
+The interactive cockpit is built with **React 19, Vite 8, Tailwind CSS 4, Framer Motion, and Recharts**.
+
+### Core Interface Components
+
+1. **Market Topology 2D Scatter Plot**
+   - X-Axis: Idiosyncratic Volatility (asset-specific downside risk)
+   - Y-Axis: Expected Return (TK Peer Reward proxy)
+   - Interactive pan/zoom via `react-zoom-pan-pinch`
+   - Opportunity Frontier curve and quadrant analysis (Alpha Zone vs Severe Risk Zone)
+   - Toggle between Risk-coloring mode and Sector-coloring mode
+   - Individual filter buttons for all 5 risk tiers + sector filters
+
+2. **Dual-Pane Foldable Stock Profile Modal**
+   - *Left Pane*: Return, volatility, market cap, 5-year historical area chart with positive/negative gradient
+   - *Right Pane*: TreeSHAP driver bars, 5-class posterior distribution, CSRC compliance badge, SHA-256 audit hash, natural language XAI summary
+   - Month-by-month trajectory with accuracy tracking
+
+3. **Alpha Track Record Dashboard**
+   - Cumulative return chart: Strategy (Opportunity) vs Benchmark vs Avoid
+   - Monthly breakdown with win/loss highlighting
+   - Top Alpha Picks leaderboard
+
+4. **CSRC Risk Assessment Wizard**
+   - 5-question psychometric questionnaire (horizon, drawdown tolerance, experience, objective, liquidity)
+   - Real-time score computation and C1-C5 category assignment
+   - SHA-256 cryptographic certificate for each assessment
+
+5. **Portfolio Recommendation Engine**
+   - Inverse-volatility weighted asset allocation constrained by investor profile
+   - Compliance status for each holding
+   - Audit hash for the entire portfolio mandate
+
+6. **AI Wealth Adviser Chat**
+   - Intent-based dialogue engine (stock diagnostics, portfolio advice, backtest explanation, CSRC regulation)
+   - Multi-stock pair portfolio analysis
+   - Optional external LLM API wrapper for conversational enhancement
+
+7. **Gamified AI Research Lab**
+   - Interactive simulation mode for educational outreach
+   - Users train neural networks, purchase data, allocate GPU clusters
+   - Demystifies AI/ML concepts for financial inclusion
+
+## Layer 4: Compliance & Security Sentinel
+
+Key capabilities:
+
+- CSRC R1-R5 suitability rules engine
+- SHA-256 cryptographic audit trail for every compliance decision
+- Investor profile assessment with immutable certificates
+- FISCO BCOS blockchain-ready audit log structure
+- Tail-risk guardrails (Kahneman-Tversky loss aversion protection)
+
+## Deployment Architecture
+
+::: {#fig-deployment}
+```{mermaid}
+flowchart TB
+    subgraph ENV["Local Environment / Cloud VM"]
+        A["start.sh<br/>(One-Command Launch)"]
+        A --> B["FastAPI Backend<br/>:8000"]
+        A --> C["Vite Dev Server<br/>:5173"]
+        B --> D["In-Memory Parquet Store<br/>(dashboard_points)"]
+        C --> B
+    end
+    subgraph DATA["Data Pipeline (Offline)"]
+        E["ml_pipeline/ml_pipeline_v5.py"] --> F["results_2023.parquet"]
+        F --> G["prepare_data.py"] --> D
+    end
+```
+Deployment topology
+:::
+
+### Single-Command Launch
+
+```bash
+chmod +x start.sh && ./start.sh
+```
+
+This script:
+
+1. Frees ports 8000 and 5173 if already in use
+2. Starts the FastAPI backend on port 8000
+3. Starts the Vite frontend dev server on port 5173
+4. Gracefully shuts down both processes on `Ctrl+C`

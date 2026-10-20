@@ -1,0 +1,15 @@
+pandas
+numpy
+scikit-learn
+lightgbm
+pyarrow
+fastparquet
+jupyterlab
+matplotlib
+seaborn
+shap
+fastapi
+uvicorn
+pydantic
+requests
+optuna

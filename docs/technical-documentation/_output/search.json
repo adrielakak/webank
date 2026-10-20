@@ -1,0 +1,242 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Adastra : Technical Documentation",
+    "section": "",
+    "text": "0.1 Executive Summary\nAdastra is an intelligent quantitative risk management and wealth advisory cockpit designed for the China A-shares equity market (~3,500 active listed companies). Built for the Shenzhen International FinTech Competition (FinTechathon 2026) : WeBank Track, the platform couples institutional quantitative finance, behavioral asset pricing, and natural language processing of Chinese financial news, with native compliance under the China Securities Regulatory Commission (CSRC) suitability guidelines.",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Adastra : Technical Documentation</span>"
+    ]
+  },
+  {
+    "objectID": "index.html#executive-summary",
+    "href": "index.html#executive-summary",
+    "title": "Adastra : Technical Documentation",
+    "section": "",
+    "text": "0.1.1 Core Capabilities\n\n\n\n\n\n\n\nCapability\nDescription\n\n\n\n\n5-Class Risk Classification\nMulticlass LightGBM mapping every A-share stock-month to CSRC-aligned risk tiers (R1 to R5)\n\n\nOrthogonal News Shocks\nPure unexpected news surprise isolated via PCA + Ridge regression residuals\n\n\nBehavioral Finance (TK Peers)\nTversky-Kahneman Prospect Theory peer momentum capturing cross-asset sentiment contagion\n\n\nExact Explainable AI\nNative TreeSHAP attributions translated into natural language for retail wealth clients\n\n\nCSRC Suitability Engine\nReal-time investor-asset compliance evaluation with SHA-256 cryptographic audit trail\n\n\nWalk-Forward Backtest\n2012-2022 temporal validation; 2023 out-of-sample alpha of +3.79% to +5.93% over the Equal-Weighted ML Universe Benchmark (+12.06% net return, Sharpe 1.03)\n\n\n\n\n\n0.1.2 Technology Stack\n\n\n\n\n\n\n\nLayer\nTechnologies\n\n\n\n\nML Pipeline\nPython 3.10+, LightGBM, SHAP, Optuna, IncrementalPCA, Ridge Regression\n\n\nBackend API\nFastAPI 0.100+, Pandas, NumPy, Pydantic\n\n\nFrontend Cockpit\nReact 19, Vite 8, Tailwind CSS 4, Framer Motion, Recharts, Shadcn UI\n\n\nSecurity\nSHA-256 cryptographic hashing, CSRC R1 to R5 suitability engine, FISCO BCOS-ready audit log\n\n\nData\nMonthly returns (Parquet), Chinese news embeddings (1024-d), 100+ accounting characteristics\n\n\n\n\n\n0.1.3 Open-Source Code Repository\n\nGitHub Repository: https://github.com/adrielakak/webank\nTrack: WeBank FinTechathon 2026 · AI & Quantitative Asset Management\n\n\n\n\n\n\n\nImportantDual-Environment Data Governance & Academic IP Protection\n\n\n\nIn accordance with institutional academic research ethics, commercial database licensing agreements (e.g., CSMAR / GTA Information Technology Co.), and intellectual property protection regulations:\n\nPublic Web Application & Cloud Deployment: The live web application hosted on public cloud infrastructure exclusively serves synthetic, mathematically calibrated benchmark datasets (mock_dashboard_points.parquet, mock_expected_return_2023.csv). This prevents unauthorized web scraping, protects proprietary datasets from theft, and complies with commercial distribution restrictions.\nLocal Research Environment (Mac Workstation): The genuine, full-scale empirical training datasets (~2.1 GB of raw 1024-dimensional Chinese financial news transformer embeddings, 12 years of CSMAR monthly trading returns, and 100+ accounting characteristics for ~3,500 listed equities) reside exclusively in a secured local directory on the developer’s local Mac (teacher data/). They are strictly excluded from version control via .gitignore and are never exposed or transferred to the public web or cloud servers.",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Adastra : Technical Documentation</span>"
+    ]
+  },
+  {
+    "objectID": "architecture.html",
+    "href": "architecture.html",
+    "title": "2  System Architecture",
+    "section": "",
+    "text": "2.1 High-Level Architecture\nAdastra is decoupled into four independently testable layers, connected via a clean REST API boundary:",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>System Architecture</span>"
+    ]
+  },
+  {
+    "objectID": "architecture.html#high-level-architecture",
+    "href": "architecture.html#high-level-architecture",
+    "title": "2  System Architecture",
+    "section": "",
+    "text": "%%{init: {'flowchart': {'subGraphTitleMargin': {'top': 15, 'bottom': 35}, 'nodeSpacing': 40, 'rankSpacing': 45}}}%%\nflowchart TB\n    subgraph S1[\"1. Feature Engineering\"]\n        direction TB\n        A[\"Chinese News Embeddings (1024-d)\"] --&gt; B[\"IncrementalPCA (30 Comp.)\"]\n        B --&gt; C[\"Ridge Residuals (News Shocks)\"]\n        D[\"Fundamental Ratios (100+ Features)\"] --&gt; E[\"Behavioral TK Peers (t-1 Lag)\"]\n        C --&gt; F[\"Unified Lagged Feature Matrix\"]\n        E --&gt; F\n    end\n\n    subgraph S2[\"2. ML & Explainability\"]\n        direction TB\n        G[\"Multiclass LightGBM (5 CSRC Classes)\"]\n        H[\"Exact TreeSHAP Attributions\"]\n        I[\"Enriched Production Dataset\"]\n        G --&gt; H\n        H --&gt; I\n    end\n\n    subgraph S3[\"3. Serving & User Cockpit\"]\n        direction TB\n        J[\"FastAPI Vectorized Backend\"]\n        K[\"CSRC R1-R5 Suitability Engine\"]\n        L[\"Natural Language XAI Engine\"]\n        M[\"React / Vite Wealth Cockpit\"]\n        J --&gt; K\n        J --&gt; L\n        J --&gt; M\n    end\n\n    S1 --&gt; S2\n    S2 --&gt; S3\n\n\n\n\n\n\n\n\nFigure 2.1: End-to-end system architecture",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>System Architecture</span>"
+    ]
+  },
+  {
+    "objectID": "architecture.html#layer-1-ml-pipeline-offline-batch",
+    "href": "architecture.html#layer-1-ml-pipeline-offline-batch",
+    "title": "2  System Architecture",
+    "section": "2.2 Layer 1: ML Pipeline (Offline Batch)",
+    "text": "2.2 Layer 1: ML Pipeline (Offline Batch)\nThe quantitative engine runs offline to produce enriched prediction datasets. It is fully deterministic : zero LLM dependency for any financial computation.\n\n2.2.1 Data Ingestion & Feature Engineering\n\n\n\n\n\n\n\n\nSource File\nSize\nContent\n\n\n\n\nfeatures_light.parquet\n243 MB\n100+ fundamental accounting ratios for ~3,500 stocks × 12 years\n\n\nnews_embeddings_1024d.parquet\n2.1 GB\n1024-dimensional Chinese news transformer embeddings\n\n\n\nNote: In accordance with our Zero-Data Policy and commercial database IP licenses, raw source datasets (China_Ashares_FC_and_NewsEmbedding.parquet, 2.1 GB) reside exclusively in a secured offline directory on the developer’s local Mac workstation. The public cloud deployment operates on synthetic calibrated benchmark data to prevent data leakage and theft.\nProcessing Pipeline:\n\nDimensionality Reduction (Look-Ahead Free): IncrementalPCA compresses 1024 news embedding dimensions -&gt; 30 principal components (preserving &gt;85% explained variance). To strictly eliminate look-ahead bias, the PCA model is fitted exclusively on historical training data (\\(t &lt; 2023\\)), and subsequently used to transform both training and out-of-sample test embeddings.\nOrthogonal Surprise Filtering: Ridge Regression of 10 PCA news dimensions onto 100 accounting characteristics extracts the residual \\(\\epsilon = \\text{News} - \\hat{\\text{News}}\\), isolating pure unexpected news surprise (Didisheim et al., 2026).\nBehavioral Finance Features: Tversky-Kahneman Prospect Theory value function distance identifies 100 nearest psychological peers per stock, computing cross-asset momentum signals (tk_peer_reward).\nPanic Signal Engineering: Interaction term \\(\\text{ivol} \\times \\max(0, -\\text{ret})\\) captures acute panic selling episodes.\nStrict Temporal Alignment & Lagging: Predictors are aligned with rigorous temporal discipline (\\(t-1\\) relative to target returns) to eliminate look-ahead bias. Financial accounting characteristics natively incorporate reporting publication delays (4-month lag for quarterly reports, 6-month lag for annual statements).\n\n\n\n2.2.2 Model Training & Inference\n\nAlgorithm: Cost-sensitive multiclass LightGBM with class_weight='balanced'\nHyperparameter Optimization: Optuna (Tree-structured Parzen Estimator), 15 Bayesian trials on temporal holdout (Train: 2018-2021, Val: 2022)\nValidation: Expanding Walk-Forward protocol across 11 out-of-sample years (2012-2022)\nOutput: Calibrated 5-class posterior probabilities + exact TreeSHAP attribution vectors for every stock-month\n\n\n\n2.2.3 Output Artifacts\n\n\n\n\n\n\n\n\nArtifact\nFormat\nContent\n\n\n\n\nresults_2023.parquet\nParquet\nRaw model predictions with SHAP values (35,085 observations)\n\n\ndashboard_points.parquet\nParquet\nEnriched visualization dataset with sectors, KNN imputation\n\n\nexpected_return_2023.csv\nCSV\nCross-sectional expected return z-scores for backtest computation\n\n\nconfusion_matrix.png\nPNG\n5×5 out-of-sample confusion matrix\n\n\nwalkforward_lgbm_v5.csv\nCSV\nWalk-forward validation metrics across 11 test years",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>System Architecture</span>"
+    ]
+  },
+  {
+    "objectID": "architecture.html#layer-2-backend-api-fastapi",
+    "href": "architecture.html#layer-2-backend-api-fastapi",
+    "title": "2  System Architecture",
+    "section": "2.3 Layer 2: Backend API (FastAPI)",
+    "text": "2.3 Layer 2: Backend API (FastAPI)\nThe backend is a stateless, in-memory vectorized REST API serving predictions, explainability, compliance evaluations, and advisory dialogue.\n\n2.3.1 API Endpoints\n\n\n\n\n\n\n\n\nRoute\nMethod\nDescription\n\n\n\n\n/\nGET\nHealth check and version information\n\n\n/api/dates\nGET\nAvailable trading months (ISO format)\n\n\n/api/stocks\nGET\n2D scatter coordinates, 5-class probabilities, sectors, risk classifications\n\n\n/api/stocks/{stkcd}\nGET\nDetailed asset profile: TreeSHAP, 5-year history, compliance, XAI explanation\n\n\n/api/stats\nGET\nCross-sectional market statistics (return/volatility distributions)\n\n\n/api/backtest\nGET\nFull 2023 out-of-sample backtest: Opportunity vs Benchmark vs Avoid\n\n\n/api/profile/assess\nPOST\nCSRC Investor Suitability Assessment (C1-C5) with SHA-256 certificate\n\n\n/api/portfolio/recommend\nGET\nCompliant inverse-volatility weighted portfolio generation\n\n\n/api/adviser/chat\nPOST\nInteractive wealth advisory dialogue engine\n\n\n\n\n\n2.3.2 Key Backend Modules\n\n\n\n\n\n\n\nModule\nResponsibility\n\n\n\n\nmain.py\nFastAPI application, CORS, data loading, route handlers, backtest computation, synthetic fallback\n\n\ncompliance.py\nCSRC R1-R5 suitability rules engine with immutable SHA-256 audit hashing\n\n\nxai.py\nNatural language synthesis: translates SHAP vectors -&gt; intuitive financial explanations\n\n\nadviser.py\nWealth advisory engine: investor profiling, portfolio optimization, intent-based dialogue\n\n\nprepare_data.py\nETL pipeline: KNN imputation + authentic China A-shares industry classification\n\n\n\n\n\n2.3.3 Synthetic Fallback (Zero-Data Policy)\nWhen proprietary data files are absent (e.g., on public cloud deployments), the API generates academic synthetic benchmark data in-memory:\n\n50 synthetic stocks × 12 months (2023)\nRealistic return distributions, sector assignments, SHAP features\nIncludes a crash case study (Stock 688566, Nov-Dec severe risk)\nEnsures 100% API functionality without IP violation",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>System Architecture</span>"
+    ]
+  },
+  {
+    "objectID": "architecture.html#layer-3-frontend-cockpit-react-vite",
+    "href": "architecture.html#layer-3-frontend-cockpit-react-vite",
+    "title": "2  System Architecture",
+    "section": "2.4 Layer 3: Frontend Cockpit (React + Vite)",
+    "text": "2.4 Layer 3: Frontend Cockpit (React + Vite)\nThe interactive cockpit is built with React 19, Vite 8, Tailwind CSS 4, Framer Motion, and Recharts.\n\n2.4.1 Core Interface Components\n\nMarket Topology 2D Scatter Plot\n\nX-Axis: Idiosyncratic Volatility (asset-specific downside risk)\nY-Axis: Expected Return (TK Peer Reward proxy)\nInteractive pan/zoom via react-zoom-pan-pinch\nOpportunity Frontier curve and quadrant analysis (Alpha Zone vs Severe Risk Zone)\nToggle between Risk-coloring mode and Sector-coloring mode\nIndividual filter buttons for all 5 risk tiers + sector filters\n\nDual-Pane Foldable Stock Profile Modal\n\nLeft Pane: Return, volatility, market cap, 5-year historical area chart with positive/negative gradient\nRight Pane: TreeSHAP driver bars, 5-class posterior distribution, CSRC compliance badge, SHA-256 audit hash, natural language XAI summary\nMonth-by-month trajectory with accuracy tracking\n\nAlpha Track Record Dashboard\n\nCumulative return chart: Strategy (Opportunity) vs Benchmark vs Avoid\nMonthly breakdown with win/loss highlighting\nTop Alpha Picks leaderboard\n\nCSRC Risk Assessment Wizard\n\n5-question psychometric questionnaire (horizon, drawdown tolerance, experience, objective, liquidity)\nReal-time score computation and C1-C5 category assignment\nSHA-256 cryptographic certificate for each assessment\n\nPortfolio Recommendation Engine\n\nInverse-volatility weighted asset allocation constrained by investor profile\nCompliance status for each holding\nAudit hash for the entire portfolio mandate\n\nAI Wealth Adviser Chat\n\nIntent-based dialogue engine (stock diagnostics, portfolio advice, backtest explanation, CSRC regulation)\nMulti-stock pair portfolio analysis\nOptional external LLM API wrapper for conversational enhancement\n\nGamified AI Research Lab\n\nInteractive simulation mode for educational outreach\nUsers train neural networks, purchase data, allocate GPU clusters\nDemystifies AI/ML concepts for financial inclusion",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>System Architecture</span>"
+    ]
+  },
+  {
+    "objectID": "architecture.html#layer-4-compliance-security-sentinel",
+    "href": "architecture.html#layer-4-compliance-security-sentinel",
+    "title": "2  System Architecture",
+    "section": "2.5 Layer 4: Compliance & Security Sentinel",
+    "text": "2.5 Layer 4: Compliance & Security Sentinel\nKey capabilities:\n\nCSRC R1-R5 suitability rules engine\nSHA-256 cryptographic audit trail for every compliance decision\nInvestor profile assessment with immutable certificates\nFISCO BCOS blockchain-ready audit log structure\nTail-risk guardrails (Kahneman-Tversky loss aversion protection)",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>System Architecture</span>"
+    ]
+  },
+  {
+    "objectID": "architecture.html#deployment-architecture",
+    "href": "architecture.html#deployment-architecture",
+    "title": "2  System Architecture",
+    "section": "2.6 Deployment Architecture",
+    "text": "2.6 Deployment Architecture\n\n\n\n\n\n\n\n\nflowchart TB\n    subgraph ENV[\"Local Environment / Cloud VM\"]\n        A[\"start.sh&lt;br/&gt;(One-Command Launch)\"]\n        A --&gt; B[\"FastAPI Backend&lt;br/&gt;:8000\"]\n        A --&gt; C[\"Vite Dev Server&lt;br/&gt;:5173\"]\n        B --&gt; D[\"In-Memory Parquet Store&lt;br/&gt;(dashboard_points)\"]\n        C --&gt; B\n    end\n    subgraph DATA[\"Data Pipeline (Offline)\"]\n        E[\"ml_pipeline/ml_pipeline_v5.py\"] --&gt; F[\"results_2023.parquet\"]\n        F --&gt; G[\"prepare_data.py\"] --&gt; D\n    end\n\n\n\n\n\n\n\n\nFigure 2.2: Deployment topology\n\n\n\n\n2.6.1 Single-Command Launch\nchmod +x start.sh && ./start.sh\nThis script:\n\nFrees ports 8000 and 5173 if already in use\nStarts the FastAPI backend on port 8000\nStarts the Vite frontend dev server on port 5173\nGracefully shuts down both processes on Ctrl+C",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>System Architecture</span>"
+    ]
+  },
+  {
+    "objectID": "algorithm.html",
+    "href": "algorithm.html",
+    "title": "3  Core Algorithm Description",
+    "section": "",
+    "text": "3.1 Problem Formulation",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Core Algorithm Description</span>"
+    ]
+  },
+  {
+    "objectID": "algorithm.html#problem-formulation",
+    "href": "algorithm.html#problem-formulation",
+    "title": "3  Core Algorithm Description",
+    "section": "",
+    "text": "3.1.1 Why Risk Classification Instead of Return Prediction?\nConventional point-return regression in quantitative finance suffers from near-zero signal-to-noise ratios. Monthly stock returns have standard deviations an order of magnitude larger than their means, making precise point estimates unreliable.\nOur approach reformulates the problem as a 5-class risk classification aligned directly with CSRC (China Securities Regulatory Commission) investor suitability guidelines:\n\n\n\n\n\n\n\n\n\n\nClass\nLabel\nMonthly Return (\\(R\\))\nCSRC Product Rating\nDescription\n\n\n\n\n0\nNo Risk (Alpha)\n\\(R \\ge +5\\%\\)\nR1\nCapital expansion regime\n\n\n1\nLow Risk\n\\(0\\% \\le R &lt; +5\\%\\)\nR2\nCapital preservation\n\n\n2\nMedium Risk\n\\(-5\\% \\le R &lt; 0\\%\\)\nR3\nModerate contraction\n\n\n3\nHigh Risk\n\\(-10\\% \\le R &lt; -5\\%\\)\nR4\nElevated vulnerability\n\n\n4\nSevere Risk\n\\(R &lt; -10\\%\\)\nR5\nAsymmetric tail-crash\n\n\n\n\n\n\n\n\n\nImportantRegulatory Alignment\n\n\n\nThis formulation is not arbitrary : it directly maps to CSRC product risk ratings (R1 through R5), enabling seamless integration with the compliance engine. Each prediction carries immediate regulatory meaning.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Core Algorithm Description</span>"
+    ]
+  },
+  {
+    "objectID": "algorithm.html#feature-engineering-pipeline",
+    "href": "algorithm.html#feature-engineering-pipeline",
+    "title": "3  Core Algorithm Description",
+    "section": "3.2 Feature Engineering Pipeline",
+    "text": "3.2 Feature Engineering Pipeline\n\n3.2.1 1. Orthogonal News Shocks (Didisheim et al., 2026)\nRaw NLP text embeddings heavily duplicate information already present in financial statements. We decompose news signals into:\n\\[\n\\text{News}_{i,t} = \\underbrace{\\hat{\\text{News}}_{i,t}}_{\\text{Expected (priced by fundamentals)}} + \\underbrace{\\epsilon_{i,t}}_{\\text{Orthogonal Surprise (News Shock)}}\n\\]\nProcedure:\n\nEmbedding Compression: 1024-dimensional Chinese news transformer embeddings -&gt; 30 principal components via IncrementalPCA (batch size = 5,000 for memory efficiency on 2.1 GB data)\nRidge Regression: For each of the top 10 PCA components, regress onto 100 accounting characteristics cross-sectionally\nResidual Extraction: The orthogonal residual \\(\\epsilon_{i,t}\\) represents the pure unexpected news surprise : information that was not already priced into the balance sheet\n\nThis innovation ensures our model captures genuinely new information rather than redundant financial statement echoes.\n\n\n3.2.2 2. Behavioral Finance: TK Peer Reward (Barberis et al., 2016)\nChina A-shares are dominated by ~200 million retail investors who exhibit strong behavioral biases. We model this via Tversky-Kahneman Prospect Theory:\nS-Shaped Value Function: \\[\nv(x) = \\begin{cases}\nx^{\\alpha} & \\text{if } x \\ge 0 \\\\\n-\\lambda(-x)^{\\beta} & \\text{if } x &lt; 0\n\\end{cases}\n\\]\nwhere \\(\\alpha = \\beta = 0.88\\) and \\(\\lambda \\approx 2.25\\) (loss aversion coefficient).\nPeer Identification: For each stock \\(i\\), we compute the Prospect Theory value function over its trailing 60-month return distribution, then identify the 100 nearest psychological peers : stocks whose historical return “feel” is most similar to retail investors.\nTK Peer Reward: The cross-sectional average return of these 100 peers serves as a behavioral momentum signal, capturing sentiment contagion effects across psychologically similar assets.\n\n\n3.2.3 3. Non-Linear Panic Signal\nStandard volatility measures treat positive and negative returns symmetrically. We engineer an asymmetric panic indicator:\n\\[\n\\text{Panic}_{i,t} = \\text{ivol}_{i,t} \\times \\max(0, -\\text{ret}_{i,t-1})\n\\]\nThis interaction term captures acute panic selling episodes where high volatility coincides with recent negative momentum : a pattern that precedes severe crash regimes.\n\n\n3.2.4 4. Complete Feature Set\n\n\n\n\n\n\n\n\nCategory\nFeatures\nCount\n\n\n\n\nFundamental Ratios\nBook-to-market, gross profit/assets, operating cash flow, debt growth, earnings surprises, etc.\n~50\n\n\nMomentum & Reversals\n1-month, 6-month, 12-month returns, seasonality patterns\n~10\n\n\nVolatility & Microstructure\nIdiosyncratic volatility (21d, 252d), realized volatility, max returns, zero trades\n~15\n\n\nNews Shocks\nOrthogonal PCA residuals (10 components)\n10\n\n\nBehavioral Finance\nTK Peer Reward, Price Peer Reward (current + lagged)\n4\n\n\nEngineered Signals\nPanic signal, financial stress, drawdown proxy, SMA distance\n~10\n\n\nTotal\n\n~100\n\n\n\nAll features are strictly lagged by a minimum of one month (\\(t-1\\)) relative to the target return month. To ensure complete absence of look-ahead bias and mirror real-world accounting publication delays, quarterly corporate fundamentals are lagged by 4 months, and annual balance sheet reports by 6 months.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Core Algorithm Description</span>"
+    ]
+  },
+  {
+    "objectID": "algorithm.html#model-architecture",
+    "href": "algorithm.html#model-architecture",
+    "title": "3  Core Algorithm Description",
+    "section": "3.3 Model Architecture",
+    "text": "3.3 Model Architecture\n\n3.3.1 LightGBM Multiclass Classifier\nWe use Gradient Boosted Decision Trees (LightGBM) for several reasons:\n\nTabular data superiority: GBDTs consistently outperform neural networks on structured financial data\nInterpretability: Native exact TreeSHAP computation without approximation\nSpeed: Handles 770,000+ observations with 100+ features efficiently\nCost-sensitivity: class_weight='balanced' addresses severe class imbalance (crash events are rare)\n\n\n\n3.3.2 Hyperparameter Optimization (Optuna)\nRather than arbitrary parameters or grid search, we use Bayesian optimization via Optuna’s Tree-structured Parzen Estimator (TPE):\n\n\n\nHyperparameter\nSearch Space\nOptimized Value\n\n\n\n\nnum_leaves\n[20, 150]\nOptimized per trial\n\n\nmax_depth\n[4, 12]\nOptimized per trial\n\n\ncolsample_bytree\n[0.5, 1.0]\nOptimized per trial\n\n\nsubsample\n[0.6, 1.0]\nOptimized per trial\n\n\nreg_alpha\n[1e-3, 10]\nOptimized per trial\n\n\nreg_lambda\n[1e-3, 10]\nOptimized per trial\n\n\nlearning_rate\n0.05 (fixed)\nFixed\n\n\nn_estimators\n500 (with early stopping)\nFixed\n\n\n\nValidation Split: Train on 2018-2021, validate on 2022, with early stopping patience of 30 rounds.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Core Algorithm Description</span>"
+    ]
+  },
+  {
+    "objectID": "algorithm.html#temporal-validation-protocol",
+    "href": "algorithm.html#temporal-validation-protocol",
+    "title": "3  Core Algorithm Description",
+    "section": "3.4 Temporal Validation Protocol",
+    "text": "3.4 Temporal Validation Protocol\n\n3.4.1 Why Not K-Fold Cross-Validation?\nRandom K-Fold shuffling is invalid in quantitative finance because it introduces severe look-ahead bias: the model can “see” future data during training, inflating performance metrics artificially.\n\n\n3.4.2 Expanding Walk-Forward Validation (2012-2022)\nFor every test year \\(T \\in [2012, 2022]\\):\n\nTraining data: All years strictly before \\(T\\) (i.e., \\(&lt; T\\))\nTest data: Year \\(T\\) only\nNo overlap: Zero information leakage between training and test\n\nThis validates model robustness across 11 distinct market regimes:\n\n\n\nYear\nMarket Context\n\n\n\n\n2012\nPost-GFC recovery\n\n\n2015\nShanghai crash & circuit-breaker halts\n\n\n2016\nPost-crash stabilization\n\n\n2018\nDeleveraging + US-China trade friction\n\n\n2019\nRecovery rally\n\n\n2020\nCOVID-19 pandemic shock + V-shaped recovery\n\n\n2021\nRegulatory crackdowns (tech, education)\n\n\n2022\nZero-COVID, property crisis",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Core Algorithm Description</span>"
+    ]
+  },
+  {
+    "objectID": "algorithm.html#explainable-ai-treeshap",
+    "href": "algorithm.html#explainable-ai-treeshap",
+    "title": "3  Core Algorithm Description",
+    "section": "3.5 Explainable AI (TreeSHAP)",
+    "text": "3.5 Explainable AI (TreeSHAP)\n\n3.5.1 Exact SHAP Values\nFor every stock-month observation in the 2023 test set (35,085 observations), we compute exact TreeSHAP values : not approximations.\nSHAP (SHapley Additive exPlanations) decomposes each prediction into additive feature contributions:\n\\[\nf(x) = \\phi_0 + \\sum_{j=1}^{M} \\phi_j\n\\]\nwhere \\(\\phi_0\\) is the base value and \\(\\phi_j\\) is the contribution of feature \\(j\\) to pushing the prediction away from the baseline.\n\n\n3.5.2 Natural Language Synthesis\nThe top 5 SHAP drivers for each stock are translated into intuitive natural language via the xai.py module. The synthesis engine:\n\nSeparates features into risk-increasing (\\(\\phi_j &gt; 0\\)) and risk-mitigating (\\(\\phi_j &lt; 0\\)) groups\nMaps technical feature names to human-readable descriptions (e.g., ivol_capm_252d -&gt; “long-term market volatility”)\nGenerates category-specific explanations calibrated to the stock’s risk classification\nAppends Kahneman-Tversky Tail-Risk Guardrail warnings when crash probability exceeds 15%",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Core Algorithm Description</span>"
+    ]
+  },
+  {
+    "objectID": "algorithm.html#out-of-sample-backtest-results",
+    "href": "algorithm.html#out-of-sample-backtest-results",
+    "title": "3  Core Algorithm Description",
+    "section": "3.6 2023 Out-of-Sample Backtest Results",
+    "text": "3.6 2023 Out-of-Sample Backtest Results\n\n3.6.1 Quadrant Strategy\nThe backtest computes four dynamic quadrants each month based on expected return z-scores and news risk z-scores:\n\n\n\n\n\n\n\n\nQuadrant\nDefinition\nStrategy Role\n\n\n\n\nOpportunity (Upper-Left)\nHigh expected return + Low news risk\nPrime Long Basket\n\n\nSpeculative (Upper-Right)\nHigh expected return + High news risk\nMomentum with caution\n\n\nDefensive (Lower-Left)\nLow expected return + Low news risk\nCapital preservation\n\n\nAvoid (Lower-Right)\nLow expected return + High news risk\nSystematic exclusion\n\n\n\n\n\n3.6.2 Performance Summary (Gross & Net of Transaction Costs)\nTo ensure academic and institutional rigor, backtest performance is evaluated both gross and net of realistic transaction friction. In China A-shares, institutional trading encounters stamp duty (0.05% on sells), brokerage commissions (~0.025%), and bid-ask slippage (~0.10%), representing an estimated ~20 bps round-trip friction per monthly rebalance.\n\n\n\n\n\n\nNoteCrucial Methodological Clarification: “Equal-Weighted ML Universe” vs Market-Cap Indices (e.g., CSI 300)\n\n\n\nThe benchmark reported in our backtest is the Equal-Weighted ML Universe Benchmark, defined as the cross-sectional arithmetic mean return of all active China A-share equities evaluated by the model in each month (\\(R_{\\text{benchmark}, t} = \\frac{1}{N_t} \\sum_{i=1}^{N_t} r_{i,t}\\)).\nIt is not a capitalization-weighted equity index like the CSI 300. In calendar year 2023, while the capitalization-weighted CSI 300 index fell by -11.38% (weighed down by mega-cap state-owned enterprises, real estate developers, and traditional banking giants), the broader equal-weighted cross-section of active A-shares exhibited positive returns (+8.27% on the active news-covered universe of 24,209 stock-months, and +4.60% across the comprehensive 37,247 stock-month universe). Benchmarking against the exact investable universe from which the model selects assets eliminates selection bias and strictly adheres to CFA Institute / GIPS institutional performance presentation standards.\n\n\n\n\n\n\n\n\n\n\n\nMetric\nAdastra Strategy (Opportunity)\nEqual-Weighted ML Universe Benchmark\nNet Advantage (Alpha)\n\n\n\n\nCumulative Return (Gross)\n+14.02%\n+8.27%\n+5.75% gross alpha\n\n\nCumulative Return (Net of 20 bps Costs)\n+12.06%\n+8.27%\n+3.79% net alpha\n\n\nAnnualized Sharpe Ratio\n1.03\n0.69\n+0.34\n\n\nMaximum Drawdown\n-4.70%\n-4.53%\nComparable tail risk\n\n\nMonthly Win Rate\n66.7% (8/12 months)\nN/A\nConsistent monthly outperformance\n\n\nStructural Long/Short Alpha Spread\n+1.310% / month\nN/A\nStatistically significant (\\(p &lt; 0.001\\))\n\n\nFull Cross-Sectional Universe (37k obs)\n+10.53% net return\n+4.60%\n+5.93% net alpha (Sharpe 0.91 vs 0.34)\n\n\n\n\n\n\n\n\n\nTipKey Insight: Asymmetric Downside Avoidance\n\n\n\nEven after deducting full transaction friction and execution slippage (-2.0% to -2.4% annual drag), the Opportunity Strategy achieves +12.06% net cumulative return (Sharpe 1.03).\nThe primary driver is the asymmetric avoidance of catastrophic downside: the Opportunity Quadrant generated +0.63%/month while the Avoid Quadrant collapsed at -0.68%/month (generating a structural monthly spread of +1.310%/month, \\(p &lt; 0.001\\)). Under the broader 37,247 stock-month universe, this spread expands to +1.700%/month (+0.60% Opportunity vs -1.10% Avoid), easily absorbing institutional transaction costs under any liquidity regime.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Core Algorithm Description</span>"
+    ]
+  },
+  {
+    "objectID": "algorithm.html#ai-expected-return-computation",
+    "href": "algorithm.html#ai-expected-return-computation",
+    "title": "3  Core Algorithm Description",
+    "section": "3.7 AI Expected Return Computation",
+    "text": "3.7 AI Expected Return Computation\nFor each stock, the AI computes a continuous expected return from the LightGBM model’s calibrated posterior distribution:\n\\[\n\\mathbb{E}[R_i] = \\sum_{k=0}^{4} P(\\text{class} = k \\mid x_i) \\cdot \\bar{R}_k\n\\]\nwhere \\(\\bar{R}_k\\) is the historical mean return for class \\(k\\):\n\n\n\nClass\n\\(\\bar{R}_k\\)\n\n\n\n\n0 (No Risk)\n+13.29%\n\n\n1 (Low Risk)\n+2.22%\n\n\n2 (Medium Risk)\n-2.45%\n\n\n3 (High Risk)\n-7.17%\n\n\n4 (Severe Risk)\n-14.96%\n\n\n\nThis guarantees 100% mathematical consistency between predicted risk classes and expected return estimates.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Core Algorithm Description</span>"
+    ]
+  },
+  {
+    "objectID": "security.html",
+    "href": "security.html",
+    "title": "4  Security Design",
+    "section": "",
+    "text": "4.1 Security Architecture Overview\nAdastra implements a defense-in-depth security model spanning four pillars: regulatory compliance enforcement, cryptographic audit integrity, data protection, and application hardening.",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Security Design</span>"
+    ]
+  },
+  {
+    "objectID": "security.html#sec-security",
+    "href": "security.html#sec-security",
+    "title": "4  Security Design",
+    "section": "",
+    "text": "%%{init: {'flowchart': {'subGraphTitleMargin': {'top': 15, 'bottom': 35}, 'nodeSpacing': 40, 'rankSpacing': 45}}}%%\nflowchart TB\n    subgraph L1[\"1. Regulatory Suitability\"]\n        direction TB\n        A[\"CSRC R1-R5&lt;br/&gt;Suitability Engine\"]\n        B[\"Investor Profile&lt;br/&gt;Assessment (C1-C5)\"]\n        C[\"Hard-Stop&lt;br/&gt;Guardrails\"]\n    end\n    subgraph L2[\"2. Cryptographic Audit\"]\n        direction TB\n        D[\"SHA-256 Audit&lt;br/&gt;Hash Chain\"]\n        E[\"Immutable Decision&lt;br/&gt;Records\"]\n        F[\"FISCO BCOS&lt;br/&gt;Ready Structure\"]\n        D --&gt; E\n        D --&gt; F\n    end\n    subgraph L3[\"3. Data & IP Protection\"]\n        direction TB\n        G[\"Zero-Data Policy&lt;br/&gt;(IP Compliance)\"]\n        H[\"Synthetic Fallback&lt;br/&gt;Generator\"]\n        I[\".gitignore&lt;br/&gt;Data Exclusion\"]\n    end\n    subgraph L4[\"4. Application Hardening\"]\n        direction TB\n        J[\"Input Validation&lt;br/&gt;(Pydantic)\"]\n        K[\"CORS Policy\"]\n        L[\"Error Handling&lt;br/&gt;& Degradation\"]\n    end\n    L1 --&gt; L2\n\n\n\n\n\n\n\n\nFigure 4.1: Security architecture layers",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Security Design</span>"
+    ]
+  },
+  {
+    "objectID": "security.html#pillar-1-csrc-regulatory-compliance-engine",
+    "href": "security.html#pillar-1-csrc-regulatory-compliance-engine",
+    "title": "4  Security Design",
+    "section": "4.2 Pillar 1: CSRC Regulatory Compliance Engine",
+    "text": "4.2 Pillar 1: CSRC Regulatory Compliance Engine\n\n4.2.1 Suitability Matching Matrix\nThe compliance engine enforces strict investor-product suitability rules aligned with CSRC regulations (Measures for the Suitability Management of Securities and Futures Investors):\n\n\n\n\n\n\n\n\n\nInvestor Profile\nCSRC Category\nAllowed Product Ratings\nMax Drawdown Tolerance\n\n\n\n\nC1 : Conservative\nR1 only\nNo Risk (Class 0)\n0% to -3%\n\n\nC2 : Steady\nR1, R2\nNo Risk, Low Risk (Classes 0-1)\n-5% to -8%\n\n\nC3 : Balanced\nR1, R2, R3\nNo Risk through Medium Risk (Classes 0-2)\n-10% to -15%\n\n\nC4 : Growth\nR1 through R4\nNo Risk through High Risk (Classes 0-3)\n-15% to -25%\n\n\nC5 : Aggressive\nR1 through R5\nAll risk levels (Classes 0-4)\n&gt;-30%\n\n\n\n\n\n4.2.2 Hard-Stop Guardrails\nThe compliance engine implements multiple layers of protection:\n\nProfile-Asset Mismatch Block: A C1 (Conservative) investor requesting a High Risk (Class 3) asset receives an immediate compliance rejection with an explanatory reason.\nTail-Risk Guardrail (Kahneman-Tversky): Even when argmax classification yields “No Risk” (Class 0), if the Bayesian posterior detects:\n\nprob_class_4 &gt; 15% (severe crash probability), OR\nprob_class_3 + prob_class_4 &gt; 30% (cumulative downside probability)\n\n…the asset is automatically elevated to a risk-monitored class and flagged to conservative investors. This eliminates &gt;90% of severe crash surprises for C1/C2 clients.\nPortfolio-Level Compliance: Every recommended portfolio undergoes per-asset suitability validation. The is_fully_compliant flag in the portfolio response indicates whether all holdings pass the investor’s risk ceiling.\n\n\n\n4.2.3 Investor Profiling Assessment\nThe 5-question psychometric questionnaire evaluates:\n\n\n\nQuestion\nDimension\nScoring Range\n\n\n\n\nQ1: Investment Horizon\nTime preference\n2-20 points\n\n\nQ2: Drawdown Tolerance\nLoss aversion\n0-30 points\n\n\nQ3: Financial Experience\nKnowledge & capability\n2-20 points\n\n\nQ4: Investment Objective\nReturn expectations\n2-20 points\n\n\nQ5: Liquidity Requirements\nRedemption needs\n2-10 points\n\n\n\nTotal Score Range: 0-100 -&gt; Maps to C1 (≤25), C2 (26-45), C3 (46-65), C4 (66-85), C5 (86-100).\nEach assessment generates an immutable SHA-256 certificate containing the investor name, timestamp, score, category, and raw answers.",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Security Design</span>"
+    ]
+  },
+  {
+    "objectID": "security.html#pillar-2-cryptographic-audit-trail",
+    "href": "security.html#pillar-2-cryptographic-audit-trail",
+    "title": "4  Security Design",
+    "section": "4.3 Pillar 2: Cryptographic Audit Trail",
+    "text": "4.3 Pillar 2: Cryptographic Audit Trail\n\n4.3.1 SHA-256 Hashing\nEvery compliance decision, portfolio recommendation, and investor assessment produces a deterministic SHA-256 cryptographic hash:\nlog_entry = {\n    \"timestamp\": int(time.time()),\n    \"stkcd\": stkcd,\n    \"profile\": user_profile,\n    \"predicted_risk\": predicted_risk,\n    \"prob_severe\": round(prob_severe, 4),\n    \"is_compliant\": is_compliant,\n    \"reason\": reason\n}\nlog_string = json.dumps(log_entry, sort_keys=True)\naudit_hash = hashlib.sha256(\n    log_string.encode('utf-8')\n).hexdigest()\nProperties:\n\nDeterministic: Identical inputs always produce identical hashes\nTamper-evident: Any modification to the decision record invalidates the hash\nNon-repudiable: The hash chain provides a verifiable sequence of advisory decisions\nEfficient: SHA-256 computation adds &lt;1ms latency per decision\n\n\n\n4.3.2 Blockchain Readiness (FISCO BCOS)\nThe audit hash structure is architected for on-chain anchoring on WeBank’s open consortium blockchain FISCO BCOS:\n\nEach audit record contains: timestamp, stkcd, profile, predicted_risk, prob_severe, is_compliant, reason\nThe SHA-256 hash can serve as a transaction payload for smart contract verification\nThe hash chain enables post-hoc regulatory audits without exposing raw client data",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Security Design</span>"
+    ]
+  },
+  {
+    "objectID": "security.html#pillar-3-data-protection-ip-compliance",
+    "href": "security.html#pillar-3-data-protection-ip-compliance",
+    "title": "4  Security Design",
+    "section": "4.4 Pillar 3: Data Protection & IP Compliance",
+    "text": "4.4 Pillar 3: Data Protection & IP Compliance\n\n4.4.1 Zero-Data Policy\nProprietary commercial datasets are never committed to the Git repository:\n# DATA INTEGRITY & IP PROTECTION (STRICTLY IGNORED)\nteacher data/\nteacher data/**\ndata/\nraw_data/\n*.csv\n*.xlsx\n*.h5\n*.zip\n*.parquet\n\n\n4.4.2 Synthetic Fallback Generator\nWhen proprietary data is absent, the API automatically generates academic synthetic data:\n\n50 stocks × 12 months with realistic distributions\nSector assignments: Technology, Financials, Consumer Goods, Healthcare, Industrials, Materials\nCrash case study: Stock 688566 simulates a severe crash in Nov-Dec 2023\nFull API compatibility: All endpoints function identically with synthetic data\n\n\n\n\n\n\n\nNote\n\n\n\nThe frontend displays a visual badge indicating whether the session operates on “Live Market Data (Production A-Shares)” or “Academic IP Benchmark (Synthetic)” data.\n\n\n\n\n4.4.3 Environment Variable Protection\nAPI keys (e.g., optional external LLM API keys) are stored in .env files excluded from version control:\n.env\n.env.*\n*.env",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Security Design</span>"
+    ]
+  },
+  {
+    "objectID": "security.html#pillar-4-application-security",
+    "href": "security.html#pillar-4-application-security",
+    "title": "4  Security Design",
+    "section": "4.5 Pillar 4: Application Security",
+    "text": "4.5 Pillar 4: Application Security\n\n4.5.1 Input Validation (Pydantic)\nAll API endpoints use Pydantic models for strict input validation:\nclass AssessmentRequest(BaseModel):\n    answers: dict[str, str]\n    investor_name: str | None = \"Client\"\n\nclass ChatRequest(BaseModel):\n    message: str\n    profile: str | None = \"C3\"\n    date: str | None = None\n    stkcd: int | None = None\n    history: list[dict] | None = None\n\nType enforcement prevents injection of malformed data\nOptional fields have safe defaults\nInvalid requests return structured HTTP 400/422 error responses\n\n\n\n4.5.2 CORS Policy\napp.add_middleware(\n    CORSMiddleware,\n    allow_origins=[\"*\"],  # Development: permissive\n    allow_credentials=True,\n    allow_methods=[\"*\"],\n    allow_headers=[\"*\"],\n)\n\n\n\n\n\n\nWarningProduction Recommendation\n\n\n\nFor production deployment, allow_origins should be restricted to specific frontend domains (e.g., [\"https://adastra.finance\"]).\n\n\n\n\n4.5.3 Error Handling & Graceful Degradation\n\nData absence: Returns HTTP 503 with descriptive message when data is not loaded\nStock not found: Returns HTTP 404 with specific stock code and date\nLLM wrapper failure: Falls back silently to rule-based templates (no user-facing error)\nBacktest unavailable: Returns HTTP 503 rather than crashing",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Security Design</span>"
+    ]
+  },
+  {
+    "objectID": "security.html#security-self-assessment-known-risks-mitigations",
+    "href": "security.html#security-self-assessment-known-risks-mitigations",
+    "title": "4  Security Design",
+    "section": "4.6 Security Self-Assessment: Known Risks & Mitigations",
+    "text": "4.6 Security Self-Assessment: Known Risks & Mitigations\n\n4.6.1 Permission-Tier Implementation Status\n\n\n\n\n\n\n\n\nFeature\nStatus\nNotes\n\n\n\n\nCSRC R1-R5 suitability enforcement\nImplemented\ncompliance.py\n\n\nInvestor C1-C5 profiling with SHA-256 certificate\nImplemented\nadviser.py\n\n\nPer-asset compliance check in portfolio recommendation\nImplemented\nadviser.py\n\n\nTail-risk guardrail (prob_severe &gt; 15%)\nImplemented\nxai.py\n\n\nCryptographic audit hash on every decision\nImplemented\ncompliance.py\n\n\nOn-chain anchoring (FISCO BCOS)\nArchitected\nPending testnet deployment\n\n\nMulti-user session isolation\nImplemented\nCryptographically isolated server-side session registry\n\n\nAuthentication / Authorization (Session Tokens)\nImplemented\nHMAC-SHA256 signed Bearer tokens & /api/auth/session\n\n\n\n\n\n4.6.2 Known Risk Register\n\n\n\n\n\n\n\n\n\n\nRisk ID\nCategory\nDescription\nSeverity\nMitigation & Current Status\n\n\n\n\nSR-001\nAuthentication\nAPI endpoint authentication and authorization\nResolved\nImplemented: Cryptographic HMAC-SHA256 signed session tokens (Bearer / X-Adastra-Session-Token) validate client requests; advisory routes verify token authenticity.\n\n\nSR-002\nCORS\nWildcard allow_origins=[\"*\"] permits cross-origin requests from any domain\nLow\nPermissive in local dev; production deploys with explicit frontend domain origin restrictions.\n\n\nSR-003\nLLM Injection\nOptional external LLM API wrapper could be vulnerable to prompt injection\nLow\nLLM is strictly decoupled; 100% of financial computations, rankings, and suitability decisions are deterministic Python algorithms.\n\n\nSR-004\nRate Limiting\nNo API rate limiting implemented\nLow\nRate limiting middleware (e.g., slowapi with Leaky Bucket) recommended for high-concurrency production deployments.\n\n\nSR-005\nAudit Persistence\nSHA-256 audit hashes are computed but not persisted to disk/database\nMedium\nIn-memory hash log active; production connects to PostgreSQL or FISCO BCOS consortium blockchain ledger.\n\n\nSR-006\nSession State\nInvestor profile and suitability tier storage\nResolved\nImplemented: Investor profiles and KYC certificates are anchored directly into server-side session memory, preventing any client-side tampering.\n\n\nSR-007\nData Integrity\nParquet files are loaded at startup without checksum verification\nLow\nAdd SHA-256 checksum verification of data artifacts upon container initialization.\n\n\n\n\n\n4.6.3 Prompt Injection Defense\nThe LLM wrapper (optional external LLM API integration) is architecturally isolated from financial computations:\n\nAll financial math is deterministic: Returns, volatilities, SHAP values, compliance decisions : computed in Python, never by LLM\nSystem instruction boundary: The LLM receives a strict system prompt constraining it to professional financial advisory persona\nGraceful degradation: If the LLM fails or returns unexpected content, the system falls back to rule-based template responses\nNo tool execution: The LLM cannot invoke backend functions or modify data\n\n\n\n4.6.4 Data Privacy Considerations\n\nNo PII collection: The system does not collect or store personally identifiable information\nInvestor profiles are ephemeral: Assessment results exist only in browser session memory\nCommercial data protection: Proprietary market data is excluded from the repository\nSynthetic data is privacy-safe: Generated distributions contain no real investor or company information",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Security Design</span>"
+    ]
+  }
+]

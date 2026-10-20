@@ -1,0 +1,223 @@
+---
+title: "Core Algorithm Description"
+---
+
+## Problem Formulation
+
+### Why Risk Classification Instead of Return Prediction?
+
+Conventional point-return regression in quantitative finance suffers from near-zero signal-to-noise ratios. Monthly stock returns have standard deviations an order of magnitude larger than their means, making precise point estimates unreliable.
+
+Our approach reformulates the problem as a **5-class risk classification** aligned directly with CSRC (China Securities Regulatory Commission) investor suitability guidelines:
+
+| Class | Label | Monthly Return ($R$) | CSRC Product Rating | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **0** | No Risk (Alpha) | $R \ge +5\%$ | R1 | Capital expansion regime |
+| **1** | Low Risk | $0\% \le R < +5\%$ | R2 | Capital preservation |
+| **2** | Medium Risk | $-5\% \le R < 0\%$ | R3 | Moderate contraction |
+| **3** | High Risk | $-10\% \le R < -5\%$ | R4 | Elevated vulnerability |
+| **4** | Severe Risk | $R < -10\%$ | R5 | Asymmetric tail-crash |
+
+::: {.callout-important}
+## Regulatory Alignment
+This formulation is not arbitrary : it directly maps to CSRC product risk ratings (R1 through R5), enabling seamless integration with the compliance engine. Each prediction carries immediate regulatory meaning.
+:::
+
+## Feature Engineering Pipeline
+
+### 1. Orthogonal News Shocks (Didisheim et al., 2026)
+
+Raw NLP text embeddings heavily duplicate information already present in financial statements. We decompose news signals into:
+
+$$
+\text{News}_{i,t} = \underbrace{\hat{\text{News}}_{i,t}}_{\text{Expected (priced by fundamentals)}} + \underbrace{\epsilon_{i,t}}_{\text{Orthogonal Surprise (News Shock)}}
+$$
+
+**Procedure:**
+
+1. **Embedding Compression**: 1024-dimensional Chinese news transformer embeddings -> 30 principal components via `IncrementalPCA` (batch size = 5,000 for memory efficiency on 2.1 GB data)
+2. **Ridge Regression**: For each of the top 10 PCA components, regress onto 100 accounting characteristics cross-sectionally
+3. **Residual Extraction**: The orthogonal residual $\epsilon_{i,t}$ represents the pure unexpected news surprise : information that was *not* already priced into the balance sheet
+
+This innovation ensures our model captures genuinely new information rather than redundant financial statement echoes.
+
+### 2. Behavioral Finance: TK Peer Reward (Barberis et al., 2016)
+
+China A-shares are dominated by ~200 million retail investors who exhibit strong behavioral biases. We model this via Tversky-Kahneman Prospect Theory:
+
+**S-Shaped Value Function:**
+$$
+v(x) = \begin{cases}
+x^{\alpha} & \text{if } x \ge 0 \\
+-\lambda(-x)^{\beta} & \text{if } x < 0
+\end{cases}
+$$
+
+where $\alpha = \beta = 0.88$ and $\lambda \approx 2.25$ (loss aversion coefficient).
+
+**Peer Identification:** For each stock $i$, we compute the Prospect Theory value function over its trailing 60-month return distribution, then identify the **100 nearest psychological peers** : stocks whose historical return "feel" is most similar to retail investors.
+
+**TK Peer Reward:** The cross-sectional average return of these 100 peers serves as a behavioral momentum signal, capturing sentiment contagion effects across psychologically similar assets.
+
+### 3. Non-Linear Panic Signal
+
+Standard volatility measures treat positive and negative returns symmetrically. We engineer an asymmetric panic indicator:
+
+$$
+\text{Panic}_{i,t} = \text{ivol}_{i,t} \times \max(0, -\text{ret}_{i,t-1})
+$$
+
+This interaction term captures acute panic selling episodes where high volatility coincides with recent negative momentum : a pattern that precedes severe crash regimes.
+
+### 4. Complete Feature Set
+
+| Category | Features | Count |
+| :--- | :--- | :--- |
+| **Fundamental Ratios** | Book-to-market, gross profit/assets, operating cash flow, debt growth, earnings surprises, etc. | ~50 |
+| **Momentum & Reversals** | 1-month, 6-month, 12-month returns, seasonality patterns | ~10 |
+| **Volatility & Microstructure** | Idiosyncratic volatility (21d, 252d), realized volatility, max returns, zero trades | ~15 |
+| **News Shocks** | Orthogonal PCA residuals (10 components) | 10 |
+| **Behavioral Finance** | TK Peer Reward, Price Peer Reward (current + lagged) | 4 |
+| **Engineered Signals** | Panic signal, financial stress, drawdown proxy, SMA distance | ~10 |
+| **Total** | | **~100** |
+
+All features are strictly lagged by a **minimum of one month** ($t-1$) relative to the target return month. To ensure complete absence of look-ahead bias and mirror real-world accounting publication delays, quarterly corporate fundamentals are lagged by 4 months, and annual balance sheet reports by 6 months.
+
+## Model Architecture
+
+### LightGBM Multiclass Classifier
+
+We use **Gradient Boosted Decision Trees** (LightGBM) for several reasons:
+
+1. **Tabular data superiority**: GBDTs consistently outperform neural networks on structured financial data
+2. **Interpretability**: Native exact TreeSHAP computation without approximation
+3. **Speed**: Handles 770,000+ observations with 100+ features efficiently
+4. **Cost-sensitivity**: `class_weight='balanced'` addresses severe class imbalance (crash events are rare)
+
+### Hyperparameter Optimization (Optuna)
+
+Rather than arbitrary parameters or grid search, we use **Bayesian optimization** via Optuna's Tree-structured Parzen Estimator (TPE):
+
+| Hyperparameter | Search Space | Optimized Value |
+| :--- | :--- | :--- |
+| `num_leaves` | [20, 150] | Optimized per trial |
+| `max_depth` | [4, 12] | Optimized per trial |
+| `colsample_bytree` | [0.5, 1.0] | Optimized per trial |
+| `subsample` | [0.6, 1.0] | Optimized per trial |
+| `reg_alpha` | [1e-3, 10] | Optimized per trial |
+| `reg_lambda` | [1e-3, 10] | Optimized per trial |
+| `learning_rate` | 0.05 (fixed) | Fixed |
+| `n_estimators` | 500 (with early stopping) | Fixed |
+
+**Validation Split**: Train on 2018-2021, validate on 2022, with early stopping patience of 30 rounds.
+
+## Temporal Validation Protocol
+
+### Why Not K-Fold Cross-Validation?
+
+Random K-Fold shuffling is **invalid in quantitative finance** because it introduces severe look-ahead bias: the model can "see" future data during training, inflating performance metrics artificially.
+
+### Expanding Walk-Forward Validation (2012-2022)
+
+For every test year $T \in [2012, 2022]$:
+
+- **Training data**: All years strictly before $T$ (i.e., $< T$)
+- **Test data**: Year $T$ only
+- **No overlap**: Zero information leakage between training and test
+
+This validates model robustness across 11 distinct market regimes:
+
+| Year | Market Context |
+| :--- | :--- |
+| 2012 | Post-GFC recovery |
+| 2015 | Shanghai crash & circuit-breaker halts |
+| 2016 | Post-crash stabilization |
+| 2018 | Deleveraging + US-China trade friction |
+| 2019 | Recovery rally |
+| 2020 | COVID-19 pandemic shock + V-shaped recovery |
+| 2021 | Regulatory crackdowns (tech, education) |
+| 2022 | Zero-COVID, property crisis |
+
+## Explainable AI (TreeSHAP)
+
+### Exact SHAP Values
+
+For every stock-month observation in the 2023 test set (35,085 observations), we compute **exact TreeSHAP values** : not approximations.
+
+SHAP (SHapley Additive exPlanations) decomposes each prediction into additive feature contributions:
+
+$$
+f(x) = \phi_0 + \sum_{j=1}^{M} \phi_j
+$$
+
+where $\phi_0$ is the base value and $\phi_j$ is the contribution of feature $j$ to pushing the prediction away from the baseline.
+
+### Natural Language Synthesis
+
+The top 5 SHAP drivers for each stock are translated into intuitive natural language via the `xai.py` module. The synthesis engine:
+
+1. Separates features into **risk-increasing** ($\phi_j > 0$) and **risk-mitigating** ($\phi_j < 0$) groups
+2. Maps technical feature names to human-readable descriptions (e.g., `ivol_capm_252d` -> "long-term market volatility")
+3. Generates category-specific explanations calibrated to the stock's risk classification
+4. Appends Kahneman-Tversky Tail-Risk Guardrail warnings when crash probability exceeds 15%
+
+## 2023 Out-of-Sample Backtest Results
+
+### Quadrant Strategy
+
+The backtest computes four dynamic quadrants each month based on expected return z-scores and news risk z-scores:
+
+| Quadrant | Definition | Strategy Role |
+| :--- | :--- | :--- |
+| **Opportunity** (Upper-Left) | High expected return + Low news risk | Prime Long Basket |
+| **Speculative** (Upper-Right) | High expected return + High news risk | Momentum with caution |
+| **Defensive** (Lower-Left) | Low expected return + Low news risk | Capital preservation |
+| **Avoid** (Lower-Right) | Low expected return + High news risk | Systematic exclusion |
+
+### Performance Summary (Gross & Net of Transaction Costs)
+
+To ensure academic and institutional rigor, backtest performance is evaluated both gross and **net of realistic transaction friction**. In China A-shares, institutional trading encounters stamp duty (0.05% on sells), brokerage commissions (~0.025%), and bid-ask slippage (~0.10%), representing an estimated ~20 bps round-trip friction per monthly rebalance.
+
+::: {.callout-note}
+## Crucial Methodological Clarification: "Equal-Weighted ML Universe" vs Market-Cap Indices (e.g., CSI 300)
+The benchmark reported in our backtest is the **Equal-Weighted ML Universe Benchmark**, defined as the cross-sectional arithmetic mean return of all active China A-share equities evaluated by the model in each month ($R_{\text{benchmark}, t} = \frac{1}{N_t} \sum_{i=1}^{N_t} r_{i,t}$). 
+
+It is **not** a capitalization-weighted equity index like the CSI 300. In calendar year 2023, while the capitalization-weighted CSI 300 index fell by **-11.38%** (weighed down by mega-cap state-owned enterprises, real estate developers, and traditional banking giants), the broader equal-weighted cross-section of active A-shares exhibited positive returns (**+8.27%** on the active news-covered universe of 24,209 stock-months, and **+4.60%** across the comprehensive 37,247 stock-month universe). Benchmarking against the exact investable universe from which the model selects assets eliminates selection bias and strictly adheres to CFA Institute / GIPS institutional performance presentation standards.
+:::
+
+| Metric | Adastra Strategy (Opportunity) | Equal-Weighted ML Universe Benchmark | Net Advantage (Alpha) |
+| :--- | :--- | :--- | :--- |
+| **Cumulative Return (Gross)** | **+14.02%** | +8.27% | **+5.75% gross alpha** |
+| **Cumulative Return (Net of 20 bps Costs)** | **+12.06%** | +8.27% | **+3.79% net alpha** |
+| **Annualized Sharpe Ratio** | **1.03** | 0.69 | **+0.34** |
+| **Maximum Drawdown** | **-4.70%** | -4.53% | **Comparable tail risk** |
+| **Monthly Win Rate** | **66.7% (8/12 months)** | N/A | Consistent monthly outperformance |
+| **Structural Long/Short Alpha Spread** | **+1.310% / month** | N/A | Statistically significant ($p < 0.001$) |
+| **Full Cross-Sectional Universe (37k obs)** | **+10.53% net return** | +4.60% | **+5.93% net alpha** (Sharpe 0.91 vs 0.34) |
+
+::: {.callout-tip}
+## Key Insight: Asymmetric Downside Avoidance
+Even after deducting full transaction friction and execution slippage (-2.0% to -2.4% annual drag), the Opportunity Strategy achieves **+12.06% net cumulative return** (Sharpe 1.03). 
+
+The primary driver is the asymmetric **avoidance of catastrophic downside**: the Opportunity Quadrant generated **+0.63%/month** while the Avoid Quadrant collapsed at **-0.68%/month** (generating a structural monthly spread of **+1.310%/month**, $p < 0.001$). Under the broader 37,247 stock-month universe, this spread expands to **+1.700%/month** (+0.60% Opportunity vs -1.10% Avoid), easily absorbing institutional transaction costs under any liquidity regime.
+:::
+
+## AI Expected Return Computation
+
+For each stock, the AI computes a continuous expected return from the LightGBM model's calibrated posterior distribution:
+
+$$
+\mathbb{E}[R_i] = \sum_{k=0}^{4} P(\text{class} = k \mid x_i) \cdot \bar{R}_k
+$$
+
+where $\bar{R}_k$ is the historical mean return for class $k$:
+
+| Class | $\bar{R}_k$ |
+| :--- | :--- |
+| 0 (No Risk) | +13.29% |
+| 1 (Low Risk) | +2.22% |
+| 2 (Medium Risk) | -2.45% |
+| 3 (High Risk) | -7.17% |
+| 4 (Severe Risk) | -14.96% |
+
+This guarantees 100% mathematical consistency between predicted risk classes and expected return estimates.
